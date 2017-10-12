@@ -1,4 +1,4 @@
-pragma solidity ^0.4.16;
+pragma solidity ^0.4.15;
 
 contract LOBTokenContract {
 
@@ -7,7 +7,7 @@ contract LOBTokenContract {
     /** 
      * An unambiguous description of the license this token manages. 
      * 
-     * This could be the SKU of the product used by the software manufacturer 
+     * This could be the SKU of the product used by the software manufacturer
      * together with the manufacturer's name or a free text description.
      */
     string public name;
