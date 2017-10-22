@@ -12,6 +12,11 @@ contract LicenseContract {
 		_;
 	}
 
+    modifier notRevoked(uint256 issuanceID) {
+        require(!issuances[issuanceID].revoked);
+        _;
+    }
+
     struct Issuance {
         string description;
         string id;
@@ -24,7 +29,8 @@ contract LicenseContract {
 
         bool revoked;
 
-        mapping (address => uint64) balance;
+        mapping (address => mapping(address => uint64)) balance;
+        mapping (address => uint64) reclaimableBalanceCache;
     }
 
     string public issuerName;
@@ -46,10 +52,10 @@ contract LicenseContract {
 
     // Events
 
-    event Issuing(uint256 licenseIndex);
-    event Transfer(uint256 licenseIndex, address from, address to, uint64 amount);
-    event Revoke(uint256 licenseIndex);
-
+    event Issuing(uint256 issuanceID);
+    event Transfer(uint256 issuanceID, address from, address to, uint64 amount, bool reclaimable);
+    event Reclaim(uint256 issuanceID, address from, address to, uint64 amount);
+    event Revoke(uint256 issuanceID);
 
 
     // Constructor
@@ -106,7 +112,8 @@ contract LicenseContract {
 		require(!disabled);
         var license = Issuance(description, id, numLicenses, auditRemark, liability, signature, /*revoked*/false);
     	issuances.push(license);
-    	issuances[issuances.length - 1].balance[initialOwner] = numLicenses;
+    	issuances[issuances.length - 1].balance[initialOwner][initialOwner] = numLicenses;
+        Issuing(issuances.length - 1);
     	return issuances.length - 1;
     }
 
@@ -115,36 +122,52 @@ contract LicenseContract {
     // Contract transfer
 
     function balanceOf(uint256 issuanceID, address owner) external constant returns (uint64) {
-    	return issuances[issuanceID].balance[owner];
+        var issuance = issuances[issuanceID];
+    	return issuance.balance[owner][owner] + issuance.reclaimableBalanceCache[owner];
     }
 
-    function isRevoked(uint256 issuanceID) external constant returns (bool) {
-        return issuances[issuanceID].revoked;
-    }
-
-    function transfer(uint256 issuanceID, address to, uint64 amount) external {
+    function transfer(uint256 issuanceID, address to, uint64 amount) public notRevoked(issuanceID) {
     	var issuance = issuances[issuanceID];
-    	require(issuance.balance[msg.sender] >= amount);
-    	require(!issuance.revoked);
+    	require(issuance.balance[msg.sender][msg.sender] >= amount);
 
-    	issuance.balance[msg.sender] -= amount;
-    	issuance.balance[to] += amount;
+    	issuance.balance[msg.sender][msg.sender] -= amount;
+    	issuance.balance[to][to] += amount;
 
-    	Transfer(issuanceID, /*from*/msg.sender, to, amount);
+    	Transfer(issuanceID, /*from*/msg.sender, to, amount, /*reclaimable*/false);
     }
 
-    function destroy(uint256 issuanceID, uint64 amount) external {
-		var issuance = issuances[issuanceID];
-    	require(issuance.balance[msg.sender] >= amount);
-    	require(!issuance.revoked);
+    function transferAndAllowReclaim(uint256 issuanceID, address to, uint64 amount) external notRevoked(issuanceID) {
+        var issuance = issuances[issuanceID];
+        require(issuance.balance[msg.sender][msg.sender] >= amount);
 
-    	issuance.balance[msg.sender] -= amount;
+        issuance.balance[msg.sender][msg.sender] -= amount;
+        issuance.balance[to][msg.sender] += amount;
+        issuance.reclaimableBalanceCache[to] += amount;
 
-    	Transfer(issuanceID, /*from*/msg.sender, /*to*/0x0, amount);
+        Transfer(issuanceID, /*from*/msg.sender, to, amount, /*reclaimable*/true);
+    }
+
+    function reclaim(uint256 issuanceID, address from, uint64 amount) external notRevoked(issuanceID) {
+        var issuance = issuances[issuanceID];
+        require(issuance.balance[from][msg.sender] >= amount);
+        
+        issuance.balance[from][msg.sender] -= amount;
+        issuance.balance[msg.sender][msg.sender] += amount;
+        issuance.reclaimableBalanceCache[from] -= amount;
+
+        Reclaim(issuanceID, from, /*to*/msg.sender, amount);
+    }
+
+    function destroy(uint256 issuanceID, uint64 amount) external notRevoked(issuanceID) {
+        transfer(issuanceID, 0x0, amount);
     }
 
     function revoke(uint256 issuanceID) external onlyIssuer {
     	issuances[issuanceID].revoked = true;
+    }
+
+    function isRevoked(uint256 issuanceID) external constant returns (bool) {
+        return issuances[issuanceID].revoked;
     }
 
     function certificateText(uint256 issuanceID) external constant returns (string) {

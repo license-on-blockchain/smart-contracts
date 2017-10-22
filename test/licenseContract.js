@@ -217,6 +217,105 @@ contract("License transfer", function(accounts) {
   });
 });
 
+contract("Reclaimable license transfer", function(accounts) {
+  accounts = require("../accounts.js")(accounts);
+
+  before(function() {
+    LicenseContract.deployed().then(function(instance) {
+      return instance.issueLicense("Desc", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer, value: 500});
+    });
+  });
+
+  it("results in correct balances for both sides", function() {
+    return LicenseContract.deployed()
+    .then(function(instance) {
+      return instance.transferAndAllowReclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
+    })
+    .thenBalance(0, accounts.firstOwner, 50)
+    .thenBalance(0, accounts.secondOwner, 20);
+  });
+
+  it("allows the lender to reclaim the licenses in one piece", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.reclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
+    })
+    .thenBalance(0, accounts.firstOwner, 70)
+    .thenBalance(0, accounts.secondOwner, 0);
+  });
+
+  it("allows the lender to reclaim the licenses piece by piece", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.transferAndAllowReclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
+    })
+    .then(function() {
+      return licenseContract.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner})
+    })
+    .thenBalance(0, accounts.firstOwner, 55)
+    .thenBalance(0, accounts.secondOwner, 15)
+    .then(function() {
+      licenseContract.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner})
+    })
+    .thenBalance(0, accounts.firstOwner, 60)
+    .thenBalance(0, accounts.secondOwner, 10);
+  });
+
+  it("does not allow the borrower to transfer the licenses on", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.transfer(0, accounts.thirdOwner, 5, {from:accounts.secondOwner});
+    })
+    .thenSolidityThrow();
+  });
+
+  it("does not allow the borrower to destroy the licenses", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.destroy(0, 5, {from:accounts.secondOwner});
+    })
+    .thenSolidityThrow();
+  });
+
+  it("does not allow the borrower to lend the licenses on", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.transferAndAllowReclaim(0, accounts.thirdOwner, 5, {from:accounts.secondOwner});
+    })
+    .thenSolidityThrow();
+  });
+
+  it("does not work if the lender does not own enough licenses", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return licenseContract.transferAndAllowReclaim(0, accounts.secondOwner, 100, {from: accounts.firstOwner});
+    })
+    .thenSolidityThrow();
+  });
+
+  it("does not allow anyone but the borrower to reclaim licenses", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.reclaim(0, accounts.secondOwner, 5, {from:accounts.thirdOwner});
+    })
+    .thenSolidityThrow();
+  });
+
+  it("does not work if the license contract has been revoked", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.revoke(0, {from: accounts.issuer});
+    })
+    .then(function() {
+      return licenseContract.transferAndAllowReclaim(0, accounts.secondOwner, 10, {from: accounts.firstOwner});
+    })
+    .thenSolidityThrow();
+  })
+
+  it("does not allow licenses to be reclaimed if the license contract has been revoked", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner});
+    })
+    .thenSolidityThrow();
+  });
+});
+
 contract("Revoking an issuing", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
