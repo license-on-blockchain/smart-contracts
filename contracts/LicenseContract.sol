@@ -110,11 +110,16 @@ contract LicenseContract {
     {
         require(msg.value >= fee);
         require(!disabled);
-        var license = Issuance(description, id, numLicenses, auditRemark, liability, signature, /*revoked*/false);
-        issuances.push(license);
-        issuances[issuances.length - 1].balance[initialOwner][initialOwner] = numLicenses;
-        Issuing(issuances.length - 1);
-        return issuances.length - 1;
+        var issuance = Issuance(description, id, numLicenses, auditRemark, liability, signature, /*revoked*/false);
+        return issueLicenseImpl(issuance, initialOwner);
+    }
+
+    function issueLicenseImpl(Issuance issuance, address initialOwner) private returns (uint256) {
+        var issuanceID = issuances.push(issuance) - 1;
+        issuances[issuanceID].balance[initialOwner][initialOwner] = issuance.originalSupply;
+        Issuing(issuanceID);
+        Transfer(issuanceID, 0x0, initialOwner, issuance.originalSupply, false);
+        return issuanceID;
     }
 
 
