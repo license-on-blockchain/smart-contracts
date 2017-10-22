@@ -2,15 +2,15 @@ pragma solidity ^0.4.15;
 
 contract LicenseContract {
 
-	modifier onlyIssuer() {
-		require(msg.sender == issuer);
-		_;
-	}
+    modifier onlyIssuer() {
+        require(msg.sender == issuer);
+        _;
+    }
 
-	modifier onlyLOBRoot() {
-		require(msg.sender == lobRoot);
-		_;
-	}
+    modifier onlyLOBRoot() {
+        require(msg.sender == lobRoot);
+        _;
+    }
 
     modifier notRevoked(uint256 issuanceID) {
         require(!issuances[issuanceID].revoked);
@@ -61,60 +61,60 @@ contract LicenseContract {
     // Constructor
 
     function LicenseContract(
-    	address _issuer, 
-    	string _issuerName, 
-    	bytes _issuerCertificate, 
-    	uint64 _fee
+        address _issuer, 
+        string _issuerName, 
+        bytes _issuerCertificate, 
+        uint64 _fee
     ) {
-    	issuer = _issuer;
-    	issuerName = _issuerName;
-    	issuerCertificate = _issuerCertificate;
-    	fee = _fee;
-    	lobRoot = msg.sender;
+        issuer = _issuer;
+        issuerName = _issuerName;
+        issuerCertificate = _issuerCertificate;
+        fee = _fee;
+        lobRoot = msg.sender;
     }
 
     // Contract creation
 
     function certificateText(
-		uint64 numLicenses, 
-		string licenseDescription, 
-		string licenseId, 
-		string auditRemark,
-		string liability
-	) 
-		public
-		constant
-		returns (string)
-	{
-	    numLicenses = numLicenses;
-	    licenseDescription = licenseDescription;
-	    licenseId = licenseId;
-	    auditRemark = auditRemark;
-	    liability = liability;
+        uint64 numLicenses, 
+        string licenseDescription, 
+        string licenseId, 
+        string auditRemark,
+        string liability
+    ) 
+        public
+        constant
+        returns (string)
+    {
+        numLicenses = numLicenses;
+        licenseDescription = licenseDescription;
+        licenseId = licenseId;
+        auditRemark = auditRemark;
+        liability = liability;
         return licenseDescription;
     }
 
     function issueLicense(
-    	string description,
-		string id,
-		uint64 numLicenses,
-		string auditRemark,
-		string liability,
-		bytes signature,
-		address initialOwner
-	)
-		external
-		onlyIssuer
-		payable
-		returns (uint256)
-	{
-		require(msg.value >= fee);
-		require(!disabled);
+        string description,
+        string id,
+        uint64 numLicenses,
+        string auditRemark,
+        string liability,
+        bytes signature,
+        address initialOwner
+    )
+        external
+        onlyIssuer
+        payable
+        returns (uint256)
+    {
+        require(msg.value >= fee);
+        require(!disabled);
         var license = Issuance(description, id, numLicenses, auditRemark, liability, signature, /*revoked*/false);
-    	issuances.push(license);
-    	issuances[issuances.length - 1].balance[initialOwner][initialOwner] = numLicenses;
+        issuances.push(license);
+        issuances[issuances.length - 1].balance[initialOwner][initialOwner] = numLicenses;
         Issuing(issuances.length - 1);
-    	return issuances.length - 1;
+        return issuances.length - 1;
     }
 
 
@@ -123,17 +123,17 @@ contract LicenseContract {
 
     function balanceOf(uint256 issuanceID, address owner) external constant returns (uint64) {
         var issuance = issuances[issuanceID];
-    	return issuance.balance[owner][owner] + issuance.reclaimableBalanceCache[owner];
+        return issuance.balance[owner][owner] + issuance.reclaimableBalanceCache[owner];
     }
 
     function transfer(uint256 issuanceID, address to, uint64 amount) public notRevoked(issuanceID) {
-    	var issuance = issuances[issuanceID];
-    	require(issuance.balance[msg.sender][msg.sender] >= amount);
+        var issuance = issuances[issuanceID];
+        require(issuance.balance[msg.sender][msg.sender] >= amount);
 
-    	issuance.balance[msg.sender][msg.sender] -= amount;
-    	issuance.balance[to][to] += amount;
+        issuance.balance[msg.sender][msg.sender] -= amount;
+        issuance.balance[to][to] += amount;
 
-    	Transfer(issuanceID, /*from*/msg.sender, to, amount, /*reclaimable*/false);
+        Transfer(issuanceID, /*from*/msg.sender, to, amount, /*reclaimable*/false);
     }
 
     function transferAndAllowReclaim(uint256 issuanceID, address to, uint64 amount) external notRevoked(issuanceID) {
@@ -163,7 +163,7 @@ contract LicenseContract {
     }
 
     function revoke(uint256 issuanceID) external onlyIssuer {
-    	issuances[issuanceID].revoked = true;
+        issuances[issuanceID].revoked = true;
     }
 
     function isRevoked(uint256 issuanceID) external constant returns (bool) {
@@ -171,8 +171,8 @@ contract LicenseContract {
     }
 
     function certificateText(uint256 issuanceID) external constant returns (string) {
-    	var issuance = issuances[issuanceID];
-    	return certificateText(issuance.originalSupply, issuance.description, issuance.id, issuance.auditRemark, issuance.liability);
+        var issuance = issuances[issuanceID];
+        return certificateText(issuance.originalSupply, issuance.description, issuance.id, issuance.auditRemark, issuance.liability);
     }
 
 
@@ -180,19 +180,19 @@ contract LicenseContract {
     // Management interface
 
     function setFee(uint64 newFee) onlyLOBRoot {
-    	fee = newFee;
+        fee = newFee;
     }
 
     function setLOBRoot(address newRoot) onlyLOBRoot {
-    	lobRoot = newRoot;
+        lobRoot = newRoot;
     }
 
     function withdraw(uint256 amount, address recipient) onlyLOBRoot {
-    	recipient.transfer(amount);
+        recipient.transfer(amount);
     }
 
     function disable() {
-    	require(msg.sender == lobRoot || msg.sender == issuer);
-    	disabled = true;
+        require(msg.sender == lobRoot || msg.sender == issuer);
+        disabled = true;
     }
 }
