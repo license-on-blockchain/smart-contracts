@@ -205,6 +205,14 @@ contract LicenseContract {
      */
     event Revoke(uint256 issuanceID);
 
+    /**
+     * Fired when the address of the LOB root changes. This is also fired upon
+     * contract creation with the initial LOB root.
+     *
+     * @param newRoot The address of the new LOB root
+     */
+    event LOBRootChange(address newRoot);
+
 
     // Constructor
 
@@ -230,11 +238,13 @@ contract LicenseContract {
         bytes _issuerCertificate, 
         uint64 _fee
     ) {
+        lobRoot = msg.sender;
+        LOBRootChange(msg.sender);
+
         issuer = _issuer;
         issuerName = _issuerName;
         issuerCertificate = _issuerCertificate;
         fee = _fee;
-        lobRoot = msg.sender;
     }
 
     /**
@@ -530,6 +540,7 @@ contract LicenseContract {
      */
     function setLOBRoot(address newRoot) onlyLOBRoot {
         lobRoot = newRoot;
+        LOBRootChange(newRoot);
     }
 
     /**
