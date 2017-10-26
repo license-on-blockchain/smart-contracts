@@ -135,7 +135,7 @@ contract LicenseContract {
 
     // Contract transfer
 
-    function balanceOf(uint256 issuanceID, address owner) external constant returns (uint64) {
+    function balance(uint256 issuanceID, address owner) external constant returns (uint64) {
         var issuance = issuances[issuanceID];
         return issuance.balance[owner][owner] + issuance.reclaimableBalanceCache[owner];
     }

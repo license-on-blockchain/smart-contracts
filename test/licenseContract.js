@@ -15,7 +15,7 @@ Promise.prototype.thenBalance = function(licenseIndex, account, balance) {
   return this.then(function() {
     return LicenseContract.deployed();
   }).then(function(instance) {
-    return instance.balanceOf(licenseIndex, account);
+    return instance.balance(licenseIndex, account);
   }).then(function(actualBalance) {
     assert.equal(actualBalance.valueOf(), balance)
   })
