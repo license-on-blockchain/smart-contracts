@@ -82,13 +82,13 @@ contract("License issuing", function(accounts) {
 
   it("cannot be performed by an address that is not the issuer", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.secondOwner, value: 500});
+      return instance.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.secondOwner, value: 500});
     }).thenSolidityThrow();
   });
 
   it("cannot be performed if fee is not transmitted", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer, value: 10});
+      return instance.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 10});
     }).thenSolidityThrow();
   });
 
@@ -96,7 +96,7 @@ contract("License issuing", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
     }).then(function() {
       // CertificateText would throw if the issuance with ID 0 does not exist
       return licenseContract.certificateText(0);
@@ -107,7 +107,7 @@ contract("License issuing", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
     })
     .thenBalance(0, accounts.firstOwner, 70);
   });
@@ -119,7 +119,7 @@ contract("License transfer", function(accounts) {
   before(function() {
     LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
     });
   });
 
@@ -222,7 +222,7 @@ contract("Reclaimable license transfer", function(accounts) {
 
   before(function() {
     LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer, value: 500});
+      return instance.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
     });
   });
 
@@ -323,7 +323,7 @@ contract("Revoking an issuing", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc2", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc2", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
     })
     .then(function() {
       return licenseContract.revoke(0, {from: accounts.firstOwner});
@@ -335,7 +335,7 @@ contract("Revoking an issuing", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc2", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc2", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
     })
     .then(function() {
       return licenseContract.revoke(0, {from: accounts.issuer});
@@ -402,7 +402,7 @@ contract("Disabling the license contract", function(accounts) {
   it("does not allow the issuance of licenses after the contract has been disabled", function() {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer});
+      return instance.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer});
     })
     .thenSolidityThrow();
   });
@@ -440,7 +440,7 @@ contract("Withdrawing fees", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer, value: 7000});
+      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 7000});
     }).then(function() {
       return licenseContract.withdraw(6000, accounts.lobRoot, {from:accounts.lobRoot})
     }).then(function() {
@@ -452,7 +452,7 @@ contract("Withdrawing fees", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", 0x0, accounts.firstOwner, {from:accounts.issuer, value: 7000});
+      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 7000});
     }).then(function() {
       return licenseContract.withdraw(6000, accounts.lobRoot, {from:accounts.issuer})
     }).thenSolidityThrow();

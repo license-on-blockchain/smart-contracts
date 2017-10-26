@@ -25,7 +25,6 @@ contract LicenseContract {
         string auditRemark;
         string liability;
 
-        bytes signature;
 
         bool revoked;
 
@@ -48,6 +47,7 @@ contract LicenseContract {
 
     bool public disabled;
 
+    bytes public signature;
 
 
     // Events
@@ -74,6 +74,13 @@ contract LicenseContract {
     }
 
     // Contract creation
+    function sign(bytes _signature) onlyIssuer {
+        // TODO: Test this
+        // Don't allow resigning of the contract
+        // TODO: Would it be desirable to allow resigning?
+        require(signature.length == 0);
+        signature = _signature;
+    }
 
     function certificateText(
         uint64 numLicenses, 
@@ -100,7 +107,6 @@ contract LicenseContract {
         uint64 numLicenses,
         string auditRemark,
         string liability,
-        bytes signature,
         address initialOwner
     )
         external
@@ -108,9 +114,12 @@ contract LicenseContract {
         payable
         returns (uint256)
     {
-        require(msg.value >= fee);
         require(!disabled);
-        var issuance = Issuance(description, id, numLicenses, auditRemark, liability, signature, /*revoked*/false);
+        // The license contract hasn't be initialised completely if it has not 
+        // been signed. Thus disallow issuing licenses.
+        require(signature.length != 0);
+        require(msg.value >= fee);
+        var issuance = Issuance(description, id, numLicenses, auditRemark, liability, /*revoked*/false);
         return issueLicenseImpl(issuance, initialOwner);
     }
 
