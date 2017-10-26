@@ -83,9 +83,9 @@ contract LicenseContract {
     }
 
     function certificateText(
-        uint64 numLicenses, 
         string licenseDescription, 
         string licenseId, 
+        uint64 numLicenses, 
         string auditRemark,
         string liability
     ) 
@@ -186,7 +186,7 @@ contract LicenseContract {
 
     function certificateText(uint256 issuanceID) external constant returns (string) {
         var issuance = issuances[issuanceID];
-        return certificateText(issuance.originalSupply, issuance.description, issuance.id, issuance.auditRemark, issuance.liability);
+        return certificateText(issuance.description, issuance.id, issuance.originalSupply, issuance.auditRemark, issuance.liability);
     }
 
 
