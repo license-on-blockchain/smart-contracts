@@ -379,6 +379,37 @@ contract LicenseContract {
     }
 
     /**
+     * Determine the number of licenses of a given issuance owned by `owner` 
+     * but which may be reclaimed by a different address (i.e. excluding 
+     * licenses that are properly owned by `owner`).
+     *
+     * @param issuanceID The issuance for which the balance shall be determined
+     * @param owner The address for which the balance shall be determined
+     * 
+     * @return The number of licenses owned by `owner` but which may be 
+     *         reclaimed by someone else
+     */
+    function reclaimableBalance(uint256 issuanceID, address owner) external constant returns (uint64) {
+        return issuances[issuanceID].reclaimableBalanceCache[owner];
+    }
+
+    /**
+     * Determine the number of licenses of a given issuance owned by `owner` 
+     * but which may be reclaimed by `reclaimer`.
+     *
+     * @param issuanceID The issuance for which the balance shall be determined
+     * @param owner The address for which the balance shall be determined
+     * @param reclaimer The address that shall be allowed to reclaim licenses 
+     *                  from `owner`
+     * 
+     * @return The number of licenses owned by `owner` but which may be 
+     *         reclaimed by `reclaimer`
+     */
+    function reclaimableBalance(uint256 issuanceID, address owner, address reclaimer) external constant returns (uint64) {
+        return issuances[issuanceID].balance[owner][reclaimer];
+    }
+
+    /**
      * Transfer `amount` licenses of the given issuance from the sender's 
      * address to `to`. `to` becomes the new proper owner of these licenses.
      *
