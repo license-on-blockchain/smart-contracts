@@ -11,14 +11,34 @@ Promise.prototype.thenSolidityThrow = function(description) {
   });
 };
 
-Promise.prototype.thenBalance = function(licenseIndex, account, balance) {
+Promise.prototype.thenBalance = function(issuanceID, account, balance) {
   return this.then(function() {
     return LicenseContract.deployed();
   }).then(function(instance) {
-    return instance.balance(licenseIndex, account);
+    return instance.balance(issuanceID, account);
   }).then(function(actualBalance) {
     assert.equal(actualBalance.valueOf(), balance)
   })
+};
+
+Promise.prototype.thenReclaimableBalance = function(issuanceID, account, balance) {
+  return this.then(function() {
+    return LicenseContract.deployed();
+  }).then(function(instance) {
+    return instance.reclaimableBalance(issuanceID, account);
+  }).then(function(actualBalance) {
+    assert.equal(actualBalance.valueOf(), balance)
+  });
+};
+
+Promise.prototype.thenReclaimableBalanceBy = function(issuanceID, account, reclaimer, balance) {
+  return this.then(function() {
+    return LicenseContract.deployed();
+  }).then(function(instance) {
+    return instance.reclaimableBalanceBy(issuanceID, account, reclaimer);
+  }).then(function(actualBalance) {
+    assert.equal(actualBalance.valueOf(), balance)
+  });
 };
 
 
@@ -276,12 +296,20 @@ contract("Reclaimable license transfer", function(accounts) {
   });
 
   it("results in correct balances for both sides", function() {
+    var licenseContract;
     return LicenseContract.deployed()
     .then(function(instance) {
-      return instance.transferAndAllowReclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
+      licenseContract = instance;
+      return licenseContract.transferAndAllowReclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .thenBalance(0, accounts.firstOwner, 50)
-    .thenBalance(0, accounts.secondOwner, 20);
+    .thenBalance(0, accounts.secondOwner, 20)
+    .thenReclaimableBalance(0, accounts.firstOwner, 0)
+    .thenReclaimableBalance(0, accounts.secondOwner, 20)
+    .thenReclaimableBalanceBy(0, accounts.firstOwner, accounts.firstOwner, 50)
+    .thenReclaimableBalanceBy(0, accounts.firstOwner, accounts.secondOwner, 0)
+    .thenReclaimableBalanceBy(0, accounts.secondOwner, accounts.firstOwner, 20)
+    .thenReclaimableBalanceBy(0, accounts.secondOwner, accounts.secondOwner, 0)
   });
 
   it("allows the lender to reclaim the licenses in one piece", function() {
@@ -289,7 +317,10 @@ contract("Reclaimable license transfer", function(accounts) {
       return instance.reclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .thenBalance(0, accounts.firstOwner, 70)
-    .thenBalance(0, accounts.secondOwner, 0);
+    .thenBalance(0, accounts.secondOwner, 0)
+    .thenReclaimableBalance(0, accounts.firstOwner, 0)
+    .thenReclaimableBalance(0, accounts.secondOwner, 0)
+    .thenReclaimableBalanceBy(0, accounts.secondOwner, accounts.firstOwner, 0)
   });
 
   it("allows the lender to reclaim the licenses piece by piece", function() {
@@ -307,7 +338,10 @@ contract("Reclaimable license transfer", function(accounts) {
       licenseContract.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner})
     })
     .thenBalance(0, accounts.firstOwner, 60)
-    .thenBalance(0, accounts.secondOwner, 10);
+    .thenBalance(0, accounts.secondOwner, 10)
+    .thenReclaimableBalance(0, accounts.firstOwner, 0)
+    .thenReclaimableBalance(0, accounts.secondOwner, 10)
+    .thenReclaimableBalanceBy(0, accounts.secondOwner, accounts.firstOwner, 10)
   });
 
   it("does not allow the borrower to transfer the licenses on", function() {
@@ -500,7 +534,7 @@ contract("Withdrawing fees", function(accounts) {
       return licenseContract.sign("0x051381", {from: accounts.issuer});
     });
   });
-  
+
   it("can be done by the LOB root", function() {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {

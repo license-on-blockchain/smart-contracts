@@ -404,7 +404,7 @@ contract LicenseContract {
      * @return The number of licenses owned by `owner` but which may be 
      *         reclaimed by `reclaimer`
      */
-    function reclaimableBalance(uint256 issuanceID, address owner, address reclaimer) external constant returns (uint64) {
+    function reclaimableBalanceBy(uint256 issuanceID, address owner, address reclaimer) external constant returns (uint64) {
         return issuances[issuanceID].balance[owner][reclaimer];
     }
 
