@@ -77,8 +77,50 @@ contract("LicenseContract constructor", function(accounts) {
   });
 });
 
+contract("License contract signature", function(accounts) {
+  accounts = require("../accounts.js")(accounts);
+
+  it("cannot be set from anyone but the issuer", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.sign("0x051381", {from: accounts.firstOwner});
+    })
+    .thenSolidityThrow();
+  });
+
+  it("should be saved when contract is signed", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.sign("0x051381", {from: accounts.issuer});
+    }).then(function() {
+      return licenseContract.signature();
+    }).then(function(signature) {
+      assert.equal(signature.valueOf(), "0x051381");
+    });
+  });
+
+  it("cannot be changed once set", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.sign("0x051381", {from: accounts.issuer});
+    })
+    .thenSolidityThrow();
+  });
+})
+
 contract("License issuing", function(accounts) {
   accounts = require("../accounts.js")(accounts);
+
+  it("cannot be done if the license contract has not been signed", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
+    })
+    .thenSolidityThrow()
+    .then(function() {
+      return licenseContract.sign("0x051381", {from: accounts.issuer});
+    });
+  });
 
   it("cannot be performed by an address that is not the issuer", function() {
     return LicenseContract.deployed().then(function(instance) {
@@ -117,8 +159,11 @@ contract("License transfer", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
   before(function() {
+    var licenseContract;
     LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
+      return licenseContract.sign("0x051381", {from: accounts.issuer});
+    }).then(function() {
       return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
     });
   });
@@ -221,8 +266,12 @@ contract("Reclaimable license transfer", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
   before(function() {
-    LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.sign("0x051381", {from: accounts.issuer});
+    }).then(function() {
+      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
     });
   });
 
@@ -284,7 +333,7 @@ contract("Reclaimable license transfer", function(accounts) {
 
   it("does not work if the lender does not own enough licenses", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return licenseContract.transferAndAllowReclaim(0, accounts.secondOwner, 100, {from: accounts.firstOwner});
+      return instance.transferAndAllowReclaim(0, accounts.secondOwner, 100, {from: accounts.firstOwner});
     })
     .thenSolidityThrow();
   });
@@ -318,6 +367,14 @@ contract("Reclaimable license transfer", function(accounts) {
 
 contract("Revoking an issuing", function(accounts) {
   accounts = require("../accounts.js")(accounts);
+
+  before(function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.sign("0x051381", {from: accounts.issuer});
+    });
+  });
 
   it("cannot be performed by anyone but the issuer", function() {
     var licenseContract;
@@ -436,6 +493,14 @@ contract("Setting the fee", function(accounts) {
 contract("Withdrawing fees", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
+  before(function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.sign("0x051381", {from: accounts.issuer});
+    });
+  });
+  
   it("can be done by the LOB root", function() {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {

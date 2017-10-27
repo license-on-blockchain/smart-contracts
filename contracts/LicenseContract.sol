@@ -261,7 +261,6 @@ contract LicenseContract {
     // TODO: In which format shall this signature be?
     // TODO: What exactly shall the signature contain?
     function sign(bytes _signature) onlyIssuer {
-        // TODO: Test this
         // Don't allow resigning of the contract
         // TODO: Would it be desirable to allow resigning?
         require(signature.length == 0);
