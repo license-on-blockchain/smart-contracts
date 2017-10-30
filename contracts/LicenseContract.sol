@@ -213,6 +213,14 @@ contract LicenseContract {
      */
     event LOBRootChange(address newRoot);
 
+    /**
+     * Fired when the fee requrired to issue new licenses changes. Fired 
+     * initially with the constructor of this contract.
+     *
+     * @param newFee The new fee that is required every time licenses are issued
+     */
+    event FeeChange(uint128 newFee);
+
 
     // Constructor
 
@@ -238,13 +246,15 @@ contract LicenseContract {
         bytes _issuerCertificate, 
         uint128 _fee
     ) {
-        lobRoot = msg.sender;
-        LOBRootChange(msg.sender);
-
         issuer = _issuer;
         issuerName = _issuerName;
         issuerCertificate = _issuerCertificate;
+        
+        lobRoot = msg.sender;
+        LOBRootChange(msg.sender);
+
         fee = _fee;
+        FeeChange(_fee);
     }
 
     /**
@@ -560,6 +570,7 @@ contract LicenseContract {
      */
     function setFee(uint128 newFee) onlyLOBRoot {
         fee = newFee;
+        FeeChange(newFee);
     }
 
     /**
