@@ -126,7 +126,7 @@ contract LicenseContract {
      * The fees are collected in the contract and may be withdrawn by the LOB 
      * root.
      */
-    uint64 public fee;
+    uint128 public fee;
 
     /**
      * The LOB root address that is allowed to set the fee, withdraw fees and 
@@ -236,7 +236,7 @@ contract LicenseContract {
         address _issuer, 
         string _issuerName, 
         bytes _issuerCertificate, 
-        uint64 _fee
+        uint128 _fee
     ) {
         lobRoot = msg.sender;
         LOBRootChange(msg.sender);
@@ -558,7 +558,7 @@ contract LicenseContract {
      *
      * @param newFee The new fee in wei
      */
-    function setFee(uint64 newFee) onlyLOBRoot {
+    function setFee(uint128 newFee) onlyLOBRoot {
         fee = newFee;
     }
 
