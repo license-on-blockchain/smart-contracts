@@ -1,10 +1,11 @@
 module.exports = function(accounts) {
   return {
-  	lobRoot: accounts[0],
-  	issuer: accounts[1],
-  	firstOwner: accounts[2],
-  	secondOwner: accounts[3],
-  	thirdOwner: accounts[4],
-  	fourthOwner: accounts[5],
+  	lobRootOwner: accounts[0],
+  	lobRoot: accounts[1],
+  	issuer: accounts[2],
+  	firstOwner: accounts[3],
+  	secondOwner: accounts[4],
+  	thirdOwner: accounts[5],
+  	fourthOwner: accounts[6],
   }
 };
