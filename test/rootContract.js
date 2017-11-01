@@ -95,7 +95,7 @@ contract("License contract's root", function(accounts) {
   before(function() {
     return RootContract.deployed().then(function(instance) {
       rootContract = instance;
-      return rootContract.createLicenseContract("Soft&Cloud", "0x5e789a", {from: accounts.issuer});
+      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .then(function(transaction) {
       var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
@@ -131,7 +131,7 @@ contract("License contract disabling", function(accounts) {
   before(function() {
     return RootContract.deployed().then(function(instance) {
       rootContract = instance;
-      return rootContract.createLicenseContract("Soft&Cloud", "0x5e789a", {from: accounts.issuer});
+      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .then(function(transaction) {
       var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
@@ -164,7 +164,7 @@ contract("Withdrawal from license contracts", function(accounts) {
   before(function() {
     return RootContract.deployed().then(function(instance) {
       rootContract = instance;
-      return rootContract.createLicenseContract("Soft&Cloud", "0x5e789a", {from: accounts.issuer});
+      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .then(function(transaction) {
       var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
@@ -177,7 +177,7 @@ contract("Withdrawal from license contracts", function(accounts) {
       return licenseContract.sign("0x50", {from: accounts.issuer});
     })
     .then(function() {
-      return licenseContract.issueLicense("Desc", "ID", 70, "Remark", "Liability", accounts.firstOwner, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 500});
     })
   });
 
@@ -209,7 +209,7 @@ contract("Setting a license contract's fee", function(accounts) {
   before(function() {
     return RootContract.deployed().then(function(instance) {
       rootContract = instance;
-      return rootContract.createLicenseContract("Soft&Cloud", "0x5e789a", {from: accounts.issuer});
+      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .then(function(transaction) {
       var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
@@ -272,7 +272,7 @@ contract("Creating a new license contract", function(accounts) {
       rootContract = instance;
       return rootContract.setDefaultFee(950, {from: accounts.lobRootOwner});
     }).then(function() {
-      return rootContract.createLicenseContract("Soft&Cloud", "0x5e789a", {from: accounts.issuer});
+      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .then(function(transaction) {
       var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
@@ -321,7 +321,7 @@ contract("Creating a new license contract", function(accounts) {
   it("cannot be done if root contract is disabled", function() {
     return rootContract.disable({from: accounts.lobRootOwner})
     .then(function() {
-      return rootContract.createLicenseContract("Soft&Cloud", "0x5e789a", {from: accounts.issuer});
+      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .thenSolidityThrow();
   });
