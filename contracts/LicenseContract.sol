@@ -270,7 +270,7 @@ contract LicenseContract {
         bytes _issuerCertificate,
         uint8 _safekeepingPeriod,
         uint128 _fee
-    ) {
+    ) public {
         issuer = _issuer;
         issuerName = _issuerName;
         liability = _liability;
@@ -297,7 +297,7 @@ contract LicenseContract {
      * @param _signature The signature with which to sign the license contract
      */
     // TODO: In which format shall this signature be?
-    function sign(bytes _signature) onlyIssuer {
+    function sign(bytes _signature) onlyIssuer public {
         // Don't allow resigning of the contract
         // TODO: Would it be desirable to allow resigning?
         require(signature.length == 0);
@@ -330,7 +330,7 @@ contract LicenseContract {
         address _licenseContractAddress,
         uint8 _safekeepingPeriod,
         string _liability
-        ) public constant returns (string) {
+        ) public pure returns (string) {
         var s = StringUtils.concat(
             "Wir",
             _issuerName,
@@ -585,7 +585,7 @@ contract LicenseContract {
      *
      * @param newFee The new fee in wei
      */
-    function setFee(uint128 newFee) onlyLOBRoot {
+    function setFee(uint128 newFee) onlyLOBRoot external {
         fee = newFee;
         FeeChange(newFee);
     }
@@ -596,7 +596,7 @@ contract LicenseContract {
      * 
      * @param newRoot The address of the new LOB root
      */
-    function setLOBRoot(address newRoot) onlyLOBRoot {
+    function setLOBRoot(address newRoot) onlyLOBRoot external {
         lobRoot = newRoot;
         LOBRootChange(newRoot);
     }
@@ -608,7 +608,7 @@ contract LicenseContract {
      * @param amount The amount that shall be withdrawn in wei
      * @param recipient The address that shall receive the withdrawal
      */
-    function withdraw(uint256 amount, address recipient) onlyLOBRoot {
+    function withdraw(uint256 amount, address recipient) onlyLOBRoot external {
         recipient.transfer(amount);
     }
 
@@ -617,7 +617,7 @@ contract LicenseContract {
      * while still allowing licenses to be transferred. This action cannnot be 
      * undone. It can only be performed by the LOB root and the issuer.
      */
-    function disable() {
+    function disable() external {
         require(msg.sender == lobRoot || msg.sender == issuer);
         disabled = true;
     }
