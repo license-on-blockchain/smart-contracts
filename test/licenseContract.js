@@ -41,7 +41,19 @@ Promise.prototype.thenReclaimableBalanceBy = function(issuanceID, account, recla
   });
 };
 
-
+class Issuance {
+  constructor(array) {
+    this.description = array[0];
+    this.code = array[1];
+    this.originalOwner = array[2];
+    this.originalSupply = array[3];
+    this.auditTime = array[4];
+    this.auditRemark = array[5];
+    this.revoked = array[6];
+    this.balance = array[7];
+    this.reclaimableBalanceCache = array[8];
+  }
+}
 
 var LicenseContract = artifacts.require("./LicenseContract.sol");
 
@@ -176,65 +188,65 @@ contract("License issuing", function(accounts) {
       licenseContract = instance;
       return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 500});
     }).then(function() {
-      // issuanceIsRevoked would throw if the issuance with ID 0 does not exist
-      return licenseContract.issuanceIsRevoked(0);
+      // issuance(0) would throw if the issuance with ID 0 does not exist
+      return licenseContract.issuances(0);
     });
   });
 
   
   it("sets the description", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issuanceLicenseDescription(0); 
-    }).then(function(description) {
-      assert.equal(description.valueOf(), "Desc");
+      return instance.issuances(0); 
+    }).then(function(issuance) {
+      assert.equal(new Issuance(issuance).description, "Desc");
     });
   });
 
   it("sets the code", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issuanceLicenseCode(0); 
-    }).then(function(code) {
-      assert.equal(code, "ID");
+      return instance.issuances(0); 
+    }).then(function(issuance) {
+      assert.equal(new Issuance(issuance).code, "ID");
     });
   });
 
   it("sets the original owner", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issuanceOriginalOwner(0); 
-    }).then(function(originalOwner) {
-      assert.equal(originalOwner, "Original owner");
+      return instance.issuances(0); 
+    }).then(function(issuance) {
+      assert.equal(new Issuance(issuance).originalOwner, "Original owner");
     });
   });
 
   it("sets the original supply", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issuanceOriginalSupply(0); 
-    }).then(function(originalSupply) {
-      assert.equal(originalSupply, 70);
+      return instance.issuances(0);
+    }).then(function(issuance) {
+      assert.equal(new Issuance(issuance).originalSupply, 70);
     });
   });
 
   it("sets the audit time", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issuanceAuditTime(0); 
-    }).then(function(auditTime) {
-      assert.equal(auditTime, 1509552789);
+      return instance.issuances(0); 
+    }).then(function(issuance) {
+      assert.equal(new Issuance(issuance).auditTime, 1509552789);
     });
   });
 
   it("sets the audit remark", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issuanceAuditRemark(0); 
-    }).then(function(auditRemark) {
-      assert.equal(auditRemark, "Remark");
+      return instance.issuances(0); 
+    }).then(function(issuance) {
+      assert.equal(new Issuance(issuance).auditRemark, "Remark");
     });
   });
 
   it("sets revoked to false", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issuanceIsRevoked(0); 
-    }).then(function(revoked) {
-      assert.equal(revoked, false);
+      return instance.issuances(0); 
+    }).then(function(issuance) {
+      assert.equal(new Issuance(issuance).revoked, false);
     });
   });
 
@@ -348,10 +360,10 @@ contract("License transfer", function(accounts) {
     .thenBalance(0, accounts.secondOwner, 17)
     .thenBalance(0, accounts.thirdOwner, 0)
     .then(function() {
-      return licenseContract.issuanceOriginalSupply(0);
+      return licenseContract.issuances(0);
     })
-    .then(function(originalSupply) {
-      assert.equal(originalSupply, 70);
+    .then(function(issuance) {
+      assert.equal(new Issuance(issuance).originalSupply, 70);
     })
   });
 
@@ -513,10 +525,10 @@ contract("Revoking an issuing", function(accounts) {
       return licenseContract.revoke(0, {from: accounts.issuer});
     })
     .then(function() {
-      return licenseContract.isRevoked(0);
+      return licenseContract.issuances(0);
     })
-    .then(function(revoked) {
-      assert.equal(revoked, true);
+    .then(function(issuance) {
+      assert.equal(new Issuance(issuance).revoked, true);
     })
   });
 

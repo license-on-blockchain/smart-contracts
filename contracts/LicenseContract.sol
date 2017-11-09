@@ -179,7 +179,7 @@ contract LicenseContract {
      * The issuances created by this license contract. The issuance with ID `x`
      * is `issuances[x]`.
      */
-    Issuance[] issuances;
+    Issuance[] public issuances;
 
 
 
@@ -412,59 +412,6 @@ contract LicenseContract {
 
 
 
-    // Issuance parameters retrieval
-
-    /**
-     * @return The description of the issuance with the given ID
-     */
-    function issuanceLicenseDescription(uint256 issuanceID) external constant returns (string) {
-        return issuances[issuanceID].description;
-    }
-
-    /**
-     * @return The unambiguous code of the issuance with the given ID
-     */
-    function issuanceLicenseCode(uint256 issuanceID) external constant returns (string) {
-        return issuances[issuanceID].code;
-    }
-
-    /**
-     * @return The name of the original owner of the issuance with the given ID
-     */
-    function issuanceOriginalOwner(uint256 issuanceID) external constant returns (string) {
-        return issuances[issuanceID].originalOwner;
-    }
-
-    /**
-     * @return The number of licenses originally issued as part of this issuance
-     */
-    function issuanceOriginalSupply(uint256 issuanceID) external constant returns (uint64) {
-        return issuances[issuanceID].originalSupply;
-    }
-
-    /**
-     * @return The time at which the audit for the issuance with the given ID 
-     *         was perfomred as a Unix timestamp
-     */
-    function issuanceAuditTime(uint256 issuanceID) external constant returns (uint32) {
-        return issuances[issuanceID].auditTime;
-    }
-
-    /**
-     * @return The audit remark of the issuance with the given ID.
-     */
-    function issuanceAuditRemark(uint256 issuanceID) external constant returns (string) {
-        return issuances[issuanceID].auditRemark;
-    }
-
-    /**
-     * @return Whether or not the issuance with the given ID has been revoked
-     */
-    function issuanceIsRevoked(uint256 issuanceID) external constant returns (bool) {
-        return issuances[issuanceID].revoked;
-    }
-
-
     // License transfer
 
     /**
@@ -626,18 +573,6 @@ contract LicenseContract {
      */
     function revoke(uint256 issuanceID) external onlyIssuer {
         issuances[issuanceID].revoked = true;
-    }
-
-    /**
-     * Determine if an issuance has been revoked
-     * 
-     * @param issuanceID The ID of the issuance for which shall be determined if 
-     *                   it has been revoked
-     *
-     * @return Whether or not the given issuance has been revoked
-     */
-    function isRevoked(uint256 issuanceID) external constant returns (bool) {
-        return issuances[issuanceID].revoked;
     }
 
 
