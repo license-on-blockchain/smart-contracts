@@ -1,45 +1,8 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
-import "./strings.sol";
+import "./StringUtils.sol";
 
 contract LicenseContract {
-
-    // TODO: These functions really belong in a library
-
-    function toAsciiString(address x) returns (string) {
-        bytes memory s = new bytes(40);
-        for (uint i = 0; i < 20; i++) {
-            byte b = byte(uint8(uint(x) / (2**(8*(19 - i)))));
-            byte hi = byte(uint8(b) / 16);
-            byte lo = byte(uint8(b) - 16 * uint8(hi));
-            s[2*i] = char(hi);
-            s[2*i+1] = char(lo);            
-        }
-        return string(s);
-    }
-
-    function char(byte b) returns (byte c) {
-        if (b < 10) return byte(uint8(b) + 0x30);
-        else return byte(uint8(b) + 0x57);
-    }
-
-    function uintToString(uint v) constant returns (string) {
-        uint maxlength = 100;
-        bytes memory reversed = new bytes(maxlength);
-        uint i = 0;
-        while (v != 0) {
-            uint remainder = v % 10;
-            v = v / 10;
-            reversed[i++] = byte(48 + remainder);
-        }
-        bytes memory s = new bytes(i);
-        for (uint j = 0; j < i; j++) {
-            s[j] = reversed[i - j - 1];
-        }
-        return string(s);
-    }
-
-    using strings for *;
 
     /// Assert that the message is sent by the contract's issuer.
     modifier onlyIssuer() {
@@ -368,17 +331,23 @@ contract LicenseContract {
         uint8 _safekeepingPeriod,
         string _liability
         ) public constant returns (string) {
-        var s = "Wir";
-        s = s.toSlice().concat(_issuerName.toSlice());
-        s = s.toSlice().concat(", bestätigen hiermit, dass\n \nwir unter diesem Ethereum Smart Contract mit der Ethereum-Adresse ".toSlice());
-        s = s.toSlice().concat(toAsciiString(_licenseContractAddress).toSlice());
-        s = s.toSlice().concat("(nachfolgend \"LOB-License-Contract\" genannt) Software-Lizenzbescheinigungen gemäß dem Verfahren der License-On-Blockchain Foundation (LOB-Verfahren) ausstellen.\n \nWir halten folgende Bescheinigung für alle mithilfe der Funktion \"issueLicenses\" (und dem Event \"Issuing\" protokollierten) ausgestellten Lizenzen aufrecht, wobei die mit \"<...>\" gekennzeichneten Platzhalter durch die entsprechenden Parameter des Funktionsaufrufs bestimmt werden.\n \n \n                        <LicenseOwner> (nachfolgend als „Lizenzinhaber“ bezeichnet) verfügte am <AuditTime> über <NumLicenses> Lizenzen des Typs <LicenseTypeDescription>.\n \n                        Unser Lizenzaudit hat folgendes ergeben:\n                        <AuditRemark bspw.: „Die Lizenzen wurden erworben über ....,“>\n \n                        Entsprechende Belege und Kaufnachweise wurden uns vorgelegt und werden bei uns für die Dauer von ".toSlice());
-        s = s.toSlice().concat(uintToString(_safekeepingPeriod).toSlice());
-        s = s.toSlice().concat(" Jahren archiviert.\n                        Kopien dieser Belege hängen dieser Lizenzbestätigung an.\n \n                        Gleichzeitig wurde uns gegenüber seitens des Lizenzinhabers glaubhaft bestätigt, dass\n                        a) über diese Lizenzen nicht zwischenzeitlich anderweitig verfügt und\n                        b) keine weitere Lizenzbestätigung bei einem anderen Auditor, nach welchem Verfahren auch immer, angefordert wurde.\n \n                        Der Empfänger dieser Lizenzbescheinigung hat uns gegenüber schriftlich zugesichert:\n                        „Ich werde eine allfällige Weitergabe der hiermit bescheinigten Lizenz(en) durch Ausführung der Funktion \"transfer\" in dem LOB-License-Contract mit Ethereum-Adresse ".toSlice());
-        s = s.toSlice().concat(toAsciiString(_licenseContractAddress).toSlice());
-        s = s.toSlice().concat(" dokumentieren und dem Folgeerwerber eine gleichlautende Obliegenheit unter Verwendung des Wortlauts dieses Absatzes auferlegen. Soll die Übertragung außerhalb des LOB-Verfahrens erfolgen, werde ich zuvor die Bescheinigung der Lizenz durch Ausführung der Funktion \"destroy\" terminieren.“.\n \n                        ".toSlice());
-        s = s.toSlice().concat(_liability.toSlice());
-        s = s.toSlice().concat("\n \n \nWir halten unsere Lizenzbescheinigung auch gegenüber jedem aufrecht, dem eine oder mehrere mit dieser Lizenzbescheinigung bestätigte Lizenzen übertragen werden, sofern\na) diese Übertragung innerhalb dieses LOB-License-Contracts mithilfe der Funktion \"transfer\" oder \"transferAndAllowReclaim\" dokumentiert wurde und\nb) der Empfänger der Transaktion sich ebenfalls der o.g. Obliegenheit zur Dokumentation weiterer Veräußerungen auf der Blockchain unterworfen hat.\n \nIm Hinblick auf den abgebenden Lizenzinhaber endet durch eine abgebende Transaktion in jedem Fall die Gültigkeit unserer Bestätigung im Umfang der abgegebenen Lizenz(en).\n \nDie Inhaberschaft der in diesem LOB-License-Contract bescheinigten Lizenz(en) kann von jedermann durch Ausführung der Funktion \"balance\" unter Angabe der entsprechenden issuanceID und der Ethereum-Adresse des vermeintlichen Lizenzinhabers validiert werden.\nDie konkrete Lizenzbescheinigung kann von jedermann durch Ausführung der Funktion \"CertificateText\" auf dem LOB-License-Contract unter Angabe der entsprechenden issuanceID abgerufen werden.\n \nJeder Lizenztransfer im LOB-License-Contract über das Event \"Transfer\" protokolliert und die Lizenzübertragungskette kann durch Inspektion der Transfer-Events auf der Ethereum Blockchain nachvollzogen werden.\n \nZur Ausführung der o.g. Smart-Contract-Functionen und Inspektion der Transfer-Events wird die LOB-Lizenzwallet empfohlen, die von der License-On-Blockchain Foundation unter www.license-on-blockchain.com bereitgestellt wird.".toSlice());
+        var s = StringUtils.concat(
+            "Wir",
+            _issuerName,
+            ", bestätigen hiermit, dass\n \nwir unter diesem Ethereum Smart Contract mit der Ethereum-Adresse ",
+            StringUtils.addressToString(_licenseContractAddress),
+            "(nachfolgend \"LOB-License-Contract\" genannt) Software-Lizenzbescheinigungen gemäß dem Verfahren der License-On-Blockchain Foundation (LOB-Verfahren) ausstellen.\n \nWir halten folgende Bescheinigung für alle mithilfe der Funktion \"issueLicenses\" (und dem Event \"Issuing\" protokollierten) ausgestellten Lizenzen aufrecht, wobei die mit \"<...>\" gekennzeichneten Platzhalter durch die entsprechenden Parameter des Funktionsaufrufs bestimmt werden.\n \n \n                        <LicenseOwner> (nachfolgend als „Lizenzinhaber“ bezeichnet) verfügte am <AuditTime> über <NumLicenses> Lizenzen des Typs <LicenseTypeDescription>.\n \n                        Unser Lizenzaudit hat folgendes ergeben:\n                        <AuditRemark bspw.: „Die Lizenzen wurden erworben über ....,“>\n \n                        Entsprechende Belege und Kaufnachweise wurden uns vorgelegt und werden bei uns für die Dauer von "
+        );
+        s = StringUtils.concat(s,
+            StringUtils.uintToString(_safekeepingPeriod),
+            " Jahren archiviert.\n                        Kopien dieser Belege hängen dieser Lizenzbestätigung an.\n \n                        Gleichzeitig wurde uns gegenüber seitens des Lizenzinhabers glaubhaft bestätigt, dass\n                        a) über diese Lizenzen nicht zwischenzeitlich anderweitig verfügt und\n                        b) keine weitere Lizenzbestätigung bei einem anderen Auditor, nach welchem Verfahren auch immer, angefordert wurde.\n \n                        Der Empfänger dieser Lizenzbescheinigung hat uns gegenüber schriftlich zugesichert:\n                        „Ich werde eine allfällige Weitergabe der hiermit bescheinigten Lizenz(en) durch Ausführung der Funktion \"transfer\" in dem LOB-License-Contract mit Ethereum-Adresse ",
+            StringUtils.addressToString(_licenseContractAddress),
+            " dokumentieren und dem Folgeerwerber eine gleichlautende Obliegenheit unter Verwendung des Wortlauts dieses Absatzes auferlegen. Soll die Übertragung außerhalb des LOB-Verfahrens erfolgen, werde ich zuvor die Bescheinigung der Lizenz durch Ausführung der Funktion \"destroy\" terminieren.“.\n \n                        "
+        );
+        s = StringUtils.concat(s,
+            _liability,
+            "\n \n \nWir halten unsere Lizenzbescheinigung auch gegenüber jedem aufrecht, dem eine oder mehrere mit dieser Lizenzbescheinigung bestätigte Lizenzen übertragen werden, sofern\na) diese Übertragung innerhalb dieses LOB-License-Contracts mithilfe der Funktion \"transfer\" oder \"transferAndAllowReclaim\" dokumentiert wurde und\nb) der Empfänger der Transaktion sich ebenfalls der o.g. Obliegenheit zur Dokumentation weiterer Veräußerungen auf der Blockchain unterworfen hat.\n \nIm Hinblick auf den abgebenden Lizenzinhaber endet durch eine abgebende Transaktion in jedem Fall die Gültigkeit unserer Bestätigung im Umfang der abgegebenen Lizenz(en).\n \nDie Inhaberschaft der in diesem LOB-License-Contract bescheinigten Lizenz(en) kann von jedermann durch Ausführung der Funktion \"balance\" unter Angabe der entsprechenden issuanceID und der Ethereum-Adresse des vermeintlichen Lizenzinhabers validiert werden.\nDie konkrete Lizenzbescheinigung kann von jedermann durch Ausführung der Funktion \"CertificateText\" auf dem LOB-License-Contract unter Angabe der entsprechenden issuanceID abgerufen werden.\n \nJeder Lizenztransfer im LOB-License-Contract über das Event \"Transfer\" protokolliert und die Lizenzübertragungskette kann durch Inspektion der Transfer-Events auf der Ethereum Blockchain nachvollzogen werden.\n \nZur Ausführung der o.g. Smart-Contract-Functionen und Inspektion der Transfer-Events wird die LOB-Lizenzwallet empfohlen, die von der License-On-Blockchain Foundation unter www.license-on-blockchain.com bereitgestellt wird."
+        );
         return s;
     }
 
