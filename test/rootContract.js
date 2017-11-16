@@ -105,21 +105,6 @@ contract("License contract's root", function(accounts) {
       licenseContract = LicenseContract.at(licenseContractAddress);
     })
   });
-
-  it("cannot be changed by anyone but the root contract owner", function() {
-    return rootContract.setLicenseContractRoot(licenseContract.address, accounts.thirdOwner, {from: accounts.secondOwner})
-    .thenSolidityThrow();
-  });
-
-  it("can be changed by the root contract owner", function() {
-    return rootContract.setLicenseContractRoot(licenseContract.address, accounts.thirdOwner, {from: accounts.lobRootOwner})
-    .then(function() {
-      return licenseContract.lobRoot();
-    })
-    .then(function(lobRoot) {
-      assert.equal(lobRoot.valueOf(), accounts.thirdOwner);
-    })
-  });
 });
 
 contract("License contract disabling", function(accounts) {

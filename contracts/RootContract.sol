@@ -139,21 +139,6 @@ contract RootContract {
     // Managing license contracts
 
     /**
-     * Set the LOB root of a license contract from this contract to a new 
-     * address.
-     *
-     * This can only be invoked by the root contract's owner.
-     *
-     * @param licenseContractAddress The address of the license contract whose 
-     *                               LOB root shall be changed
-     * @param newRoot The address that shall from now on be the license 
-     *                contract's LOB root
-     */
-    function setLicenseContractRoot(address licenseContractAddress, address newRoot) external onlyOwner {
-        LicenseContract(licenseContractAddress).setLOBRoot(newRoot);
-    }
-
-    /**
      * Withdraw fees collected by a license contract from the license contract 
      * and transfer them to the given recpient address.
      *
