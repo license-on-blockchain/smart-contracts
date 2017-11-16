@@ -462,6 +462,16 @@ contract LicenseContract {
     // License transfer
 
     /**
+     * Return the number of issuances stored in the `issuances` instance 
+     * variable.
+     *
+     * @return The number of elements in the `issuances` instance variable
+     */
+    function issuancesCount() external constant returns (uint256) {
+        return issuances.length;
+    }
+
+    /**
     * Determine the number of licenses of a given issuance owned by `owner` 
     * including licenses that may be reclaimed by a different address.
     *

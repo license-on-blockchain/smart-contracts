@@ -188,8 +188,9 @@ contract("License issuing", function(accounts) {
       licenseContract = instance;
       return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 500});
     }).then(function() {
-      // issuance(0) would throw if the issuance with ID 0 does not exist
-      return licenseContract.issuances(0);
+      return licenseContract.issuancesCount();
+    }).then(function(issuancesCount) {
+      assert.equal(issuancesCount.valueOf(), 1);
     });
   });
 
