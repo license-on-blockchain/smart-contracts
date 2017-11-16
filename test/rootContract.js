@@ -283,6 +283,19 @@ contract("Creating a new license contract", function(accounts) {
     })
   });
 
+  it("saves the license contract address in the root contract", function() {
+    return rootContract.licenseContractCount()
+    .then(function(licenseContractCount) {
+      assert.equal(licenseContractCount.valueOf(), 1);
+    })
+    .then(function() {
+      return rootContract.licenseContracts(0);
+    })
+    .then(function(licenseContractAddress) {
+      assert.equal(licenseContractAddress.valueOf(), licenseContract.address);
+    });
+  })
+
   it("has the LOB root set to the root contract", function() {
     return licenseContract.lobRoot()
     .then(function(lobRoot) {

@@ -40,6 +40,11 @@ contract RootContract {
      */
     uint128 public defaultFee;
 
+    /** 
+     * The addresses of all license contracts created by this root contract.
+     */
+    address[] public licenseContracts;
+
     /**
      * Fired every time a new license contract is created.
      *
@@ -84,8 +89,21 @@ contract RootContract {
     // TODO: In which format shall the certificate be?
     function createLicenseContract(string issuerName, string liability, uint8 safekeepingPeriod, bytes issuerCertificate) external notDisabled returns (address) {
         var licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, issuerCertificate, safekeepingPeriod, defaultFee);
+        licenseContracts.push(licenseContractAddress);
         LicenseContractCreation(licenseContractAddress);
         return licenseContractAddress;
+    }
+
+    // Retrieving license contract addresses
+
+    /**
+     * Retrieve the number of license contract addresses stored in the 
+     * `liceseContracts` instance variable.
+     *
+     * @return The number of elements in the `liceseContract` variable
+     */
+    function licenseContractCount() external constant returns (uint256) {
+        return licenseContracts.length;
     }
 
     // Managing fees
