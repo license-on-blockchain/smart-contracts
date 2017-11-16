@@ -350,30 +350,6 @@ contract("License transfer", function(accounts) {
     .thenBalance(0, accounts.secondOwner, 20)
     .thenBalance(0, accounts.thirdOwner, 0);
   });
-
-  it("can destroy licenses", function() {
-    var licenseContract;
-    return LicenseContract.deployed().then(function(instance) {
-      licenseContract = instance;
-      return licenseContract.destroy(0, 3, {from:accounts.secondOwner});
-    })
-    .thenBalance(0, accounts.firstOwner, 50)
-    .thenBalance(0, accounts.secondOwner, 17)
-    .thenBalance(0, accounts.thirdOwner, 0)
-    .then(function() {
-      return licenseContract.issuances(0);
-    })
-    .then(function(issuance) {
-      assert.equal(new Issuance(issuance).originalSupply, 70);
-    })
-  });
-
-  it("cannot destroy more licenses than currently owned", function() {
-    return LicenseContract.deployed().then(function(instance) {
-      return instance.destroy(0, 20, {from:accounts.secondOwner});
-    })
-    .thenSolidityThrow();
-  });
 });
 
 contract("Reclaimable license transfer", function(accounts) {
@@ -441,13 +417,6 @@ contract("Reclaimable license transfer", function(accounts) {
   it("does not allow the borrower to transfer the licenses on", function() {
     return LicenseContract.deployed().then(function(instance) {
       return instance.transfer(0, accounts.thirdOwner, 5, {from:accounts.secondOwner});
-    })
-    .thenSolidityThrow();
-  });
-
-  it("does not allow the borrower to destroy the licenses", function() {
-    return LicenseContract.deployed().then(function(instance) {
-      return instance.destroy(0, 5, {from:accounts.secondOwner});
     })
     .thenSolidityThrow();
   });
@@ -537,13 +506,6 @@ contract("Revoking an issuing", function(accounts) {
     return LicenseContract.deployed().then(function(instance) {
       return instance.transfer(0, accounts.secondOwner, 85, {from:accounts.firstOwner});
     }).thenSolidityThrow();
-  });
-
-  it("does not allow licenses to be destroyed after the revocation", function() {
-    return LicenseContract.deployed().then(function(instance) {
-      return instance.destroy(0, 5, {from: accounts.firstOwner})
-    })
-    .thenSolidityThrow();
   });
 });
 

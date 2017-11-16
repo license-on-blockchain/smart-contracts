@@ -170,7 +170,7 @@ library LicenseContractLib {
             StringUtils.uintToString(_safekeepingPeriod),
             " Jahren archiviert.\n                        Kopien dieser Belege hängen dieser Lizenzbestätigung an.\n \n                        Gleichzeitig wurde uns gegenüber seitens des Lizenzinhabers glaubhaft bestätigt, dass\n                        a) über diese Lizenzen nicht zwischenzeitlich anderweitig verfügt und\n                        b) keine weitere Lizenzbestätigung bei einem anderen Auditor, nach welchem Verfahren auch immer, angefordert wurde.\n \n                        Der Empfänger dieser Lizenzbescheinigung hat uns gegenüber schriftlich zugesichert:\n                        „Ich werde eine allfällige Weitergabe der hiermit bescheinigten Lizenz(en) durch Ausführung der Funktion \"transfer\" in dem LOB-License-Contract mit Ethereum-Adresse ",
             StringUtils.addressToString(_licenseContractAddress),
-            " dokumentieren und dem Folgeerwerber eine gleichlautende Obliegenheit unter Verwendung des Wortlauts dieses Absatzes auferlegen. Soll die Übertragung außerhalb des LOB-Verfahrens erfolgen, werde ich zuvor die Bescheinigung der Lizenz durch Ausführung der Funktion \"destroy\" terminieren.“.\n \n                        "
+            " dokumentieren und dem Folgeerwerber eine gleichlautende Obliegenheit unter Verwendung des Wortlauts dieses Absatzes auferlegen. Soll die Übertragung außerhalb des LOB-Verfahrens erfolgen, werde ich zuvor die Bescheinigung der Lizenz durch Übertragung der Lizenz an die Pseudo-Adresse \"0x0000000000000000000000000000000000000000\" terminieren.“.\n \n                        "
         );
         s = StringUtils.concat(s,
             _liability,
@@ -287,7 +287,7 @@ contract LicenseContract {
     /**
      * Fired every time license are transferred. A transfer from `0x0` is fired
      * upon the issuance of licenses and a transfer to `0x0` means that licenses
-     * get destroyed.
+     * got destroyed.
      *
      * @param issuanceID The issuance in which licenses are transferred
      * @param from The address that previously owned the licenses
@@ -580,30 +580,8 @@ contract LicenseContract {
     }
 
     /**
-    * Destroy `amount` licenses of the given issuance that are currently owned
-    * by the sender. This destroy is represented by a transfer to the "trash" 
-    * address `0x0`.
-    *
-    * This requires that:
-    *  - The sender properly owns at least `amount` licenses of the given 
-    *    issuance
-    *  - The issuance has not been revoked
-    *
-    * Upon successful transfer, this fires the `Transfer` event with 
-    * `reclaimable` set to `false` and to address `0x0`.
-    *
-    * @param issuanceID The issuance out of which licenses shall be destroyed
-    * @param amount The number of licenses that shall be destroyed
-    */
-    function destroy(uint256 issuanceID, uint64 amount) external {
-        // Simply transfer the licenses to the "trash" address 0x0. This also 
-        // requires that the issuance has not been revoked
-        transfer(issuanceID, 0x0, amount);
-    }
-
-    /**
-    * Revoke the given issuance, disallowing any further license transfers, 
-    * reclaims or destroys. This action cannot be undone and can only be 
+    * Revoke the given issuance, disallowing any further license transfers or
+    * reclaims. This action cannot be undone and can only be 
     * performed by the issuer.
     *
     * @param issuanceID The ID of the issuance that shall be revoked
