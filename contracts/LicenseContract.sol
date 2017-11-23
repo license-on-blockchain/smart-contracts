@@ -111,7 +111,7 @@ library LicenseContractLib {
         return issuanceID;
     }
 
-    function transferFromMessageSender(Issuance[] storage issuances, uint256 issuanceID, address to, uint64 amount) public {
+    function transferFromMessageSender(Issuance[] storage issuances, uint256 issuanceID, address to, uint64 amount) internal {
         var issuance = issuances[issuanceID];
         require(!issuance.revoked);
         require(issuance.balance[msg.sender][msg.sender] >= amount);
@@ -122,7 +122,7 @@ library LicenseContractLib {
         Transfer(issuanceID, /*from*/msg.sender, to, amount, /*reclaimable*/false);
     }
 
-    function transferFromSenderAndAllowReclaim(Issuance[] storage issuances, uint256 issuanceID, address to, uint64 amount) public {
+    function transferFromSenderAndAllowReclaim(Issuance[] storage issuances, uint256 issuanceID, address to, uint64 amount) internal {
         var issuance = issuances[issuanceID];
         require(!issuance.revoked);
         require(issuance.balance[msg.sender][msg.sender] >= amount);

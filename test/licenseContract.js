@@ -187,6 +187,9 @@ contract("License issuing", function(accounts) {
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
       return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 500});
+    }).then(function(transaction) {
+      assert.isAtMost(transaction.receipt.gasUsed, 197931, "Regression in gas usage for license issuing");
+      assert.isAtLeast(transaction.receipt.gasUsed, 197931, "🎉 Improvement in gas usage for license issuing");
     }).then(function() {
       return licenseContract.issuancesCount();
     }).then(function(issuancesCount) {
@@ -294,6 +297,10 @@ contract("License transfer", function(accounts) {
       licenseContract = instance;
       return licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
     })
+    .then(function(transaction) {
+      assert.isAtMost(transaction.receipt.gasUsed, 53232, "Regression in gas usage for transfer");
+      assert.isAtLeast(transaction.receipt.gasUsed, 53232, "🎉 Improvement in gas usage for transfer");
+    })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20);
   });
@@ -372,6 +379,10 @@ contract("Reclaimable license transfer", function(accounts) {
       licenseContract = instance;
       return licenseContract.transferAndAllowReclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
+    .then(function(transaction) {
+      assert.isAtMost(transaction.receipt.gasUsed, 73644, "Regression in gas usage for transferAndReclaim");
+      assert.isAtLeast(transaction.receipt.gasUsed, 73644, "🎉 Improvement in gas usage for transferAndReclaim");
+    })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
     .thenReclaimableBalance(0, accounts.firstOwner, 0)
@@ -385,6 +396,10 @@ contract("Reclaimable license transfer", function(accounts) {
   it("allows the lender to reclaim the licenses in one piece", function() {
     return LicenseContract.deployed().then(function(instance) {
       return instance.reclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
+    })
+    .then(function(transaction) {
+      assert.isAtMost(transaction.receipt.gasUsed, 22711, "Regression in gas usage for reclaim");
+      assert.isAtLeast(transaction.receipt.gasUsed, 22711, "🎉 Improvement in gas usage for reclaim");
     })
     .thenBalance(0, accounts.firstOwner, 70)
     .thenBalance(0, accounts.secondOwner, 0)

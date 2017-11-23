@@ -268,10 +268,22 @@ contract("Creating a new license contract", function(accounts) {
     })
   });
 
+
+  it("does not consume too much gas", function() {
+    return RootContract.deployed().then(function(instance) {
+      rootContract = instance;
+      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+    })
+    .then(function(transaction) {
+      assert.isAtMost(transaction.receipt.gasUsed, 1932853, "Regression in gas usage for createLicenseContract");
+      assert.isAtLeast(transaction.receipt.gasUsed, 1932853, "🎉 Improvement in gas usage for createLicenseContract");
+    });
+  });
+
   it("saves the license contract address in the root contract", function() {
     return rootContract.licenseContractCount()
     .then(function(licenseContractCount) {
-      assert.equal(licenseContractCount.valueOf(), 1);
+      assert.equal(licenseContractCount.valueOf(), 2);
     })
     .then(function() {
       return rootContract.licenseContracts(0);
