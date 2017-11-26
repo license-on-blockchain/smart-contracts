@@ -70,8 +70,8 @@ Promise.prototype.thenRelevantIssuances = function(owner, relevantIssuanceIDs) {
 };
 
 assert.transactionCost = function(transaction, expectedCost, methodName) {
-  assert.isAtMost(transaction.receipt.gasUsed, expectedCost, "Regression in gas usage for " + methodName + " by " + (transaction.receipt.gasUsed - expectedCost) + " wei");
-  assert.isAtLeast(transaction.receipt.gasUsed, expectedCost, "🎉 Improvement in gas usage for " + methodName + " by " + (expectedCost - transaction.receipt.gasUsed) + " wei");
+  assert.isAtMost(transaction.receipt.gasUsed, expectedCost, "Regression in gas usage for " + methodName + " by " + (transaction.receipt.gasUsed - expectedCost) + " gas");
+  assert.isAtLeast(transaction.receipt.gasUsed, expectedCost, "🎉 Improvement in gas usage for " + methodName + " by " + (expectedCost - transaction.receipt.gasUsed) + " gas");
 };
 
 class Issuance {
@@ -221,7 +221,7 @@ contract("License issuing", function(accounts) {
       licenseContract = instance;
       return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 500});
     }).then(function(transaction) {
-      assert.transactionCost(transaction, 223724, "license issuing");
+      assert.transactionCost(transaction, 223810, "license issuing");
     }).then(function() {
       return licenseContract.issuancesCount();
     }).then(function(issuancesCount) {

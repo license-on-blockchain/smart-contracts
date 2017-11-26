@@ -603,4 +603,33 @@ contract LicenseContract {
         require(msg.sender == lobRoot || msg.sender == issuer);
         disabled = true;
     }
+
+    /**
+     * Build the certificate text by filling custom placeholders into a template
+     * certificate text.
+     *
+     * @return The certificate text template with placeholders instantiated by 
+     *         the given parameters
+     */
+    function certificateText() external constant returns (string) {
+        var s = StringUtils.concat(
+            "Wir, ",
+            issuerName,
+            ", bescheinigen hiermit,\n\ndass wir unter dem Ethereum Smart Contract mit der Ethereum-Adresse „",
+            StringUtils.addressToString(this),
+            "“ (nachfolgend „LOB-License-Contract“ genannt) Software-Lizenzbescheinigungen gemäß dem Verfahren der License-On-Blockchain Foundation („LOB-Verfahren“) ausstellen.\n \nWir halten folgende Bescheinigung für alle mithilfe der Smart Contract-Funktion „issueLicenses“ (und in dem Smart Contract mit dem Event „Issuing“ protokollierten) ausgestellten Lizenzen aufrecht, wobei die in dieser Bescheinigung mit „<…>“ gekennzeichneten Platzhalter durch die entsprechenden Parameter des Funktionsaufrufs bestimmt werden.\n\n\n<LicenseOwner> (nachfolgend als „Lizenzinhaber“ bezeichnet) verfügte am <AuditTime> über <NumLicenses> Lizenzen des Typs <LicenseTypeDescription> (<LicenseCode>, issuanceID: <issuanceID>).\n\nUnser Lizenzaudit hat folgendes ergeben:\n<AuditRemark>\n\nEntsprechende Belege und Kaufnachweise wurden uns vorgelegt und werden bei uns für die Dauer von "
+        );
+        s = StringUtils.concat(s,
+            StringUtils.uintToString(safekeepingPeriod),
+            " Jahren archiviert.\n\nGleichzeitig wurde uns gegenüber seitens des Lizenzinhabers glaubhaft bestätigt, dass\na) über diese Lizenzen nicht zwischenzeitlich anderweitig verfügt und\nb) keine weitere Lizenzbestätigung bei einem anderen Auditor, nach welchem Verfahren auch immer, angefordert wurde.\n \nDer Empfänger dieser Lizenzbescheinigung hat uns gegenüber schriftlich zugesichert:\n„Ich werde eine Weitergabe der hiermit bescheinigten Lizenz(en) durch Ausführung der Funktion ‚transfer‘ oder ‚transferAndAllowReclaim‘ in dem LOB-License-Contract mit Ethereum-Adresse ‚",
+            StringUtils.addressToString(this),
+            "‘ dokumentieren. Soll die Übertragung außerhalb des LOB-Verfahrens erfolgen, werde ich zuvor die Bescheinigung der Lizenz durch Übertragung der Lizenz an die Pseudo-Adresse ‚0x0000000000000000000000000000000000000000‘ terminieren. Dem Folgeerwerber werde ich eine gleichlautende Obliegenheit unter Verwendung des Wortlauts dieses Absatzes auferlegen.“\n\n"
+        );
+        s = StringUtils.concat(s,
+            "\n\n\nWir halten unsere Lizenzbescheinigung auch gegenüber jedem aufrecht, dem eine oder mehrere mit dieser Lizenzbescheinigung bestätigte Lizenzen übertragen werden, sofern\na) diese Übertragung innerhalb dieses LOB-License-Contracts mithilfe der Funktion „transfer“ oder „transferAndAllowReclaim“ dokumentiert wurde und\nb) der Empfänger der Transaktion sich ebenfalls der o.g. Obliegenheit zur Dokumentation weiterer Veräußerungen auf der Blockchain unterworfen hat.\nIm Hinblick auf den abgebenden Lizenzinhaber endet durch eine abgebende Transaktion in jedem Fall die Gültigkeit unserer Bestätigung im Umfang der abgegebenen Lizenz(en).\n\n",
+            liability,
+            "\n\nDie Inhaberschaft der in diesem LOB-License-Contract bescheinigten Lizenz(en) kann von jedermann durch Ausführung der Funktion „balance“ unter Angabe der entsprechenden issuanceID und der Ethereum-Adresse des vermeintlichen Lizenzinhabers validiert werden.\nDie konkrete Lizenzbescheinigung kann von jedermann durch Ausführung der Funktion „certificateText“ auf dem LOB-License-Contract abgerufen werden.\n\nJeder Lizenztransfer wird im LOB-License-Contract über das Event „Transfer“ protokolliert. Damit kann die Lizenzübertragungskette nachvollzogen werden.\n\nZur Ausführung der o.g. Smart-Contract-Functionen und Inspektion der Transfer-Events wird die LOB-Lizenzwallet empfohlen, die von der License-On-Blockchain Foundation unter www.license-on-blockchain.com bereitgestellt wird."
+        );
+        return s;
+    }
 }
