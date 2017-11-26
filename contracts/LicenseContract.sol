@@ -240,6 +240,16 @@ contract LicenseContract {
      */
     LicenseContractLib.Issuance[] public issuances;
 
+    /**
+     * A list of all the issuanceID for which the given address has ever owned
+     * a license.
+     *
+     * This list is never cleared, and the existance of an issuance ID in it 
+     * does not guarantee that the address currently owns licenses of this type.
+     * Also, issuance IDs may occur multiple times.
+     */
+    mapping(address => uint256[]) public relevantIssuances;
+
 
 
     // Events
@@ -402,6 +412,7 @@ contract LicenseContract {
         require(signature.length != 0);
         require(msg.value >= fee);
         var issuanceID = issuances.insert(description, code, originalOwner, auditTime, auditRemark);
+        relevantIssuances[initialOwner].push(issuanceID);
         return issuances.createInitialLicenses(issuanceID, numLicenses, initialOwner);
     }
 
@@ -417,6 +428,22 @@ contract LicenseContract {
      */
     function issuancesCount() external constant returns (uint256) {
         return issuances.length;
+    }
+
+    /**
+     * Return the number of issuances relevant for the given owner that can be
+     * retrieved using `relevantIssuances(owner, i)` where 
+     * `i < relevantIssuancesCount(owner)`. 
+     *
+     * Note that because `relevantIssuances` may contain duplicate entries, the 
+     * number of acutally relevant issuances for this owner may be smaller than
+     * the number returned by this method.
+     *
+     * @return The maximum index `i` that can be used when accessing 
+     *         `relevantIssuances(owner, i)`
+     */
+    function relevantIssuancesCount(address owner) external constant returns (uint256) {
+        return relevantIssuances[owner].length;
     }
 
     /**
@@ -482,6 +509,7 @@ contract LicenseContract {
     * @param amount The number of licenses that shall be transferred
     */
     function transfer(uint256 issuanceID, address to, uint64 amount) public {
+        relevantIssuances[to].push(issuanceID);
         issuances.transferFromMessageSender(issuanceID, to, amount);
     }
 
@@ -504,6 +532,7 @@ contract LicenseContract {
     * @param amount The number of licenses that shall be transferred
     */
     function transferAndAllowReclaim(uint256 issuanceID, address to, uint64 amount) external {
+        relevantIssuances[to].push(issuanceID);
         issuances.transferFromSenderAndAllowReclaim(issuanceID, to, amount);
     }
 

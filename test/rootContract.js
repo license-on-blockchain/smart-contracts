@@ -11,6 +11,11 @@ Promise.prototype.thenSolidityThrow = function(description) {
   });
 };
 
+assert.transactionCost = function(transaction, expectedCost, methodName) {
+  assert.isAtMost(transaction.receipt.gasUsed, expectedCost, "Regression in gas usage for " + methodName + " by " + (transaction.receipt.gasUsed - expectedCost) + " wei");
+  assert.isAtLeast(transaction.receipt.gasUsed, expectedCost, "🎉 Improvement in gas usage for " + methodName + " by " + (expectedCost - transaction.receipt.gasUsed) + " wei");
+};
+
 var LicenseContract = artifacts.require("./LicenseContract.sol");
 var RootContract = artifacts.require("./RootContract.sol");
 
@@ -275,8 +280,7 @@ contract("Creating a new license contract", function(accounts) {
       return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .then(function(transaction) {
-      assert.isAtMost(transaction.receipt.gasUsed, 1932853, "Regression in gas usage for createLicenseContract");
-      assert.isAtLeast(transaction.receipt.gasUsed, 1932853, "🎉 Improvement in gas usage for createLicenseContract");
+      assert.transactionCost(transaction, 2044303, "createLicenseContract");
     });
   });
 
