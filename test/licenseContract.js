@@ -41,7 +41,7 @@ Promise.prototype.thenReclaimableBalanceBy = function(issuanceID, account, recla
   });
 };
 
-Promise.prototype.thenRelevantIssuances = function(owner, relevantIssuanceIDs) {
+Promise.prototype.thenRelevantIssuances = function(owner, expectedRelevantIssuanceIDs) {
   var licenseContract;
   var temp = this;
   
@@ -55,15 +55,43 @@ Promise.prototype.thenRelevantIssuances = function(owner, relevantIssuanceIDs) {
   temp = temp.then(function() {
     return licenseContract.relevantIssuancesCount(owner);
   }).then(function(count) {
-    assert.equal(count, relevantIssuanceIDs.length);
+    assert.equal(count, expectedRelevantIssuanceIDs.length);
   });
 
-  for (var i = 0; i < relevantIssuanceIDs.length; i++) {
+  for (var i = 0; i < expectedRelevantIssuanceIDs.length; i++) {
     var j = i;
     temp = temp.then(function() {
       return licenseContract.relevantIssuances(owner, j);
     }).then(function(issuanceID) {
-      assert.equal(issuanceID, relevantIssuanceIDs[j], "relevantIssuances[" + j + "]");
+      assert.equal(issuanceID, expectedRelevantIssuanceIDs[j], "relevantIssuances[" + j + "]");
+    })
+  }
+  return temp;
+};
+
+Promise.prototype.thenAddressesLicensesCanBeReclaimedFrom = function(issuanceID, originalOwner, expectedAddressesLicensesCanBeReclaimedFrom) {
+  var licenseContract;
+  var temp = this;
+  
+  temp = temp.then(function() {
+    return LicenseContract.deployed();
+  }).then(function(instance) {
+    licenseContract = instance;
+  });
+
+
+  temp = temp.then(function() {
+    return licenseContract.addressesLicensesCanBeReclaimedFromCount(issuanceID, originalOwner);
+  }).then(function(count) {
+    assert.equal(count, expectedAddressesLicensesCanBeReclaimedFrom.length);
+  });
+
+  for (var i = 0; i < expectedAddressesLicensesCanBeReclaimedFrom.length; i++) {
+    var j = i;
+    temp = temp.then(function() {
+      return licenseContract.addressesLicensesCanBeReclaimedFrom(issuanceID, originalOwner, j);
+    }).then(function(issuanceID) {
+      assert.equal(issuanceID, expectedAddressesLicensesCanBeReclaimedFrom[j], "addressesLicensesCanBeReclaimedFrom[" + j + "]");
     })
   }
   return temp;
@@ -221,7 +249,7 @@ contract("License issuing", function(accounts) {
       licenseContract = instance;
       return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 500});
     }).then(function(transaction) {
-      assert.transactionCost(transaction, 223810, "license issuing");
+      assert.transactionCost(transaction, 223854, "license issuing");
     }).then(function() {
       return licenseContract.issuancesCount();
     }).then(function(issuancesCount) {
@@ -330,7 +358,7 @@ contract("License transfer", function(accounts) {
       return licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 79045, "transfer");
+      assert.transactionCost(transaction, 79067, "transfer");
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
@@ -427,6 +455,8 @@ contract("Reclaimable license transfer", function(accounts) {
     .thenReclaimableBalanceBy(0, accounts.secondOwner, accounts.secondOwner, 0)
     .thenRelevantIssuances(accounts.firstOwner, [0])
     .thenRelevantIssuances(accounts.secondOwner, [0])
+    .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.firstOwner, [accounts.secondOwner])
+    .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.secondOwner, [])
   });
 
   it("allows the lender to reclaim the licenses in one piece", function() {
@@ -434,7 +464,7 @@ contract("Reclaimable license transfer", function(accounts) {
       return instance.reclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 22711, "reclaim");
+      assert.transactionCost(transaction, 22722, "reclaim");
     })
     .thenBalance(0, accounts.firstOwner, 70)
     .thenBalance(0, accounts.secondOwner, 0)
@@ -443,6 +473,8 @@ contract("Reclaimable license transfer", function(accounts) {
     .thenReclaimableBalanceBy(0, accounts.secondOwner, accounts.firstOwner, 0)
     .thenRelevantIssuances(accounts.firstOwner, [0])
     .thenRelevantIssuances(accounts.secondOwner, [0])
+    .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.firstOwner, [accounts.secondOwner])
+    .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.secondOwner, [])
   });
 
   it("allows the lender to reclaim the licenses piece by piece", function() {

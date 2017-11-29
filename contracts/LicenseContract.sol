@@ -80,6 +80,22 @@ library LicenseContractLib {
          * `reclaimableBalanceCache[x] + balance[x][x]`.
          */
         mapping (address => uint64) reclaimableBalanceCache;
+
+        /**
+         * A list of addresses to which licenses have been transferred with the
+         * right to reclaim them. 
+         *
+         * This is an auxiliary list to determine the addresses from which 
+         * licenses may be reclaimed. Whenever `x` has transferred a licenses
+         * to `y` with the right to reclaim it, `y` will be in 
+         * `addressesLicensesCanBeReclaimedFrom[x]`. The list is  never 
+         * cleared, thus the existance of an address in the list does not 
+         * guarantee that a reclaim is possible (e.g. if the licenses has 
+         * already been reclaimed).
+         * Addresses may occur multiple times in the list, since it is only 
+         * appended to.
+         */
+        mapping (address => address[]) addressesLicensesCanBeReclaimedFrom;
     }
 
     // Mirror event declarations from LicenseContract to allow them to be 
@@ -130,6 +146,7 @@ library LicenseContractLib {
         issuance.balance[msg.sender][msg.sender] -= amount;
         issuance.balance[to][msg.sender] += amount;
         issuance.reclaimableBalanceCache[to] += amount;
+        issuance.addressesLicensesCanBeReclaimedFrom[msg.sender].push(to);
 
         Transfer(issuanceID, /*from*/msg.sender, to, amount, /*reclaimable*/true);
     }
@@ -418,6 +435,79 @@ contract LicenseContract {
 
 
 
+    // Caches
+
+    /**
+     * Return the number of issuances relevant for the given owner that can be
+     * retrieved using `relevantIssuances(owner, i)` where 
+     * `i < relevantIssuancesCount(owner)`. 
+     *
+     * Note that because `relevantIssuances` may contain duplicate and outdated 
+     * entries, the number of acutally relevant issuances for this owner may be 
+     * smaller than the number returned by this method.
+     *
+     * @param owner The owner for which relevant issuances shall be determined
+     *
+     * @return The maximum index `i` that can be used when accessing 
+     *         `relevantIssuances(owner, i)`
+     */
+    function relevantIssuancesCount(address owner) external constant returns (uint256) {
+        return relevantIssuances[owner].length;
+    }
+
+    /**
+     * Return the number of addresses from which `originalOwner` may be able to 
+     * reclaim licenses of issuance with ID `issuanceID`. These addresses can be
+     * retrieved using `addressesLicensesCanBeReclaimedFrom`.
+     *
+     * Note that because `addressesLicensesCanBeReclaimedFrom` may contain 
+     * duplicate entries and is never cleared, the number of addresses 
+     * `originalOwner` is able to reclaim licenses from is likely lower than
+     * the count returned by this function.
+     *
+     * @param issuanceID The issuance id for which addresses from which licenses
+     *                   may be reclaimable shall be determined
+     * @param originalOwner The address that would like to reclaim licenses
+     *
+     * @return An upper bound (exclusive) on the index for 
+     *         `addressesLicensesCanBeReclaimedFrom`
+     */
+    function addressesLicensesCanBeReclaimedFromCount(uint256 issuanceID, address originalOwner) external constant returns (uint256) {
+        return issuances[issuanceID].addressesLicensesCanBeReclaimedFrom[originalOwner].length;
+    }
+
+    /**
+     * Return the `index`th address from which licenses may be reclaimable by
+     * originalOwner. The maximum index can be determined using 
+     * `addressesLicensesCanBeReclaimedFromCount`.
+     *
+     * `addressesLicensesCanBeReclaimedFrom` is a list of addresses to which 
+     * licenses have been transferred with the right to reclaim them. 
+     *
+     * It is an auxiliary list to determine the addresses from which 
+     * licenses may be reclaimed. Whenever `x` has transferred a licenses
+     * to `y` with the right to reclaim it, `y` will be in 
+     * `addressesLicensesCanBeReclaimedFrom[x]`. The list is  never 
+     * cleared, thus the existance of an address in the list does not 
+     * guarantee that a reclaim is possible (e.g. if the licenses has 
+     * already been reclaimed).
+     * Addresses may occur multiple times in the list, since it is only 
+     * appended to.
+     *
+     * @param issuanceID The issuance id for which addresses from which licenses
+     *                   may be reclaimable shall be determined
+     * @param originalOwner The address that would like to reclaim licenses
+     * @param index The array index that shall be retrieved. Must be smaller 
+     *              than the count returned by
+     *              `addressesLicensesCanBeReclaimedFromCount`
+     *
+     * @return An address from which `originalOwner` may be able to reclaim 
+     *         licenses of the given issuance ID
+     */
+    function addressesLicensesCanBeReclaimedFrom(uint256 issuanceID, address originalOwner, uint256 index) external constant returns (address) {
+        return issuances[issuanceID].addressesLicensesCanBeReclaimedFrom[originalOwner][index];
+    }
+
     // License transfer
 
     /**
@@ -426,24 +516,9 @@ contract LicenseContract {
      *
      * @return The number of elements in the `issuances` instance variable
      */
+    // TODO: This just exists for compatibility with version 0
     function issuancesCount() external constant returns (uint256) {
         return issuances.length;
-    }
-
-    /**
-     * Return the number of issuances relevant for the given owner that can be
-     * retrieved using `relevantIssuances(owner, i)` where 
-     * `i < relevantIssuancesCount(owner)`. 
-     *
-     * Note that because `relevantIssuances` may contain duplicate entries, the 
-     * number of acutally relevant issuances for this owner may be smaller than
-     * the number returned by this method.
-     *
-     * @return The maximum index `i` that can be used when accessing 
-     *         `relevantIssuances(owner, i)`
-     */
-    function relevantIssuancesCount(address owner) external constant returns (uint256) {
-        return relevantIssuances[owner].length;
     }
 
     /**
