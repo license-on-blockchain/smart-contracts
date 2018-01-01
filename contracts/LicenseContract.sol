@@ -318,6 +318,11 @@ contract LicenseContract {
      */
     event FeeChange(uint128 newFee);
 
+    /**
+     * Fired when the smart contract gets signed.
+     */
+    event Signing();
+
 
     // Constructor
 
@@ -378,6 +383,7 @@ contract LicenseContract {
         // Don't allow resigning of the contract
         // TODO: Would it be desirable to allow resigning?
         require(signature.length == 0);
+        Signing();
         signature = _signature;
     }
 

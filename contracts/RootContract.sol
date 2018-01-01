@@ -45,7 +45,7 @@ contract RootContract {
      */
     address[] public licenseContracts;
 
-    uint16 public version = 3;
+    uint16 public version = 4;
 
     /**
      * Fired every time a new license contract is created.
