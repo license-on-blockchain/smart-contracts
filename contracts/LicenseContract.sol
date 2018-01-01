@@ -522,7 +522,6 @@ contract LicenseContract {
      *
      * @return The number of elements in the `issuances` instance variable
      */
-    // TODO: This just exists for compatibility with version 0
     function issuancesCount() external constant returns (uint256) {
         return issuances.length;
     }
