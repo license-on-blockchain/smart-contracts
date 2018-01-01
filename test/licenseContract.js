@@ -358,7 +358,7 @@ contract("License transfer", function(accounts) {
       return licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 79067, "transfer");
+      assert.transactionCost(transaction, 79003, "transfer");
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
@@ -443,7 +443,7 @@ contract("Reclaimable license transfer", function(accounts) {
       return licenseContract.transferAndAllowReclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 140531, "transferAndReclaim");
+      assert.transactionCost(transaction, 140467, "transferAndReclaim");
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
@@ -464,7 +464,7 @@ contract("Reclaimable license transfer", function(accounts) {
       return instance.reclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 22722, "reclaim");
+      assert.transactionCost(transaction, 22690, "reclaim");
     })
     .thenBalance(0, accounts.firstOwner, 70)
     .thenBalance(0, accounts.secondOwner, 0)
