@@ -323,6 +323,11 @@ contract LicenseContract {
      */
     event Signing();
 
+    /**
+     * Fired when the smart contract gets disabled.
+     */
+    event Disabling();
+
 
     // Constructor
 
@@ -682,6 +687,7 @@ contract LicenseContract {
     */
     function disable() external {
         require(msg.sender == lobRoot || msg.sender == issuer);
+        Disabling();
         disabled = true;
     }
 
