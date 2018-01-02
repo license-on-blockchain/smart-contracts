@@ -612,6 +612,7 @@ contract LicenseContract {
     * @param amount The number of licenses that shall be transferred
     */
     function transferAndAllowReclaim(uint256 issuanceID, address to, uint64 amount) external {
+        require(to != msg.sender);
         relevantIssuances[to].push(issuanceID);
         issuances.transferFromSenderAndAllowReclaim(issuanceID, to, amount);
     }
