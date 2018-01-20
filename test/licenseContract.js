@@ -613,18 +613,20 @@ contract("Disabling the license contract", function(accounts) {
     }).thenSolidityThrow();
   });
 
-  it("can be done by the LOB root", function() {
+  it("cannot be done by the LOB root", function() {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
-      licenseContract = instance;
-      return licenseContract.disable({from: accounts.lobRoot});
+      return instance.disable({from: accounts.lobRoot});
     })
-    .then(function() {
-      return licenseContract.disabled();
+    .thenSolidityThrow();
+  });
+
+  it("cannot be done by the LOB root owner", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.disable({from: accounts.lobRootOwner});
     })
-    .then(function(disabled) {
-      assert.equal(disabled.valueOf(), true);
-    });
+    .thenSolidityThrow();
   });
 
   it("can be done by the issuer", function() {

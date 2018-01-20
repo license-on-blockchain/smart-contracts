@@ -158,19 +158,6 @@ contract RootContract {
         LicenseContract(licenseContractAddress).withdraw(amount, recipient);
     }
 
-    /**
-     * Disable the license contract with the given address, making it unable to 
-     * issue any more licenses.
-     *
-     * This can only be invoked by the root contract's owner.
-     *
-     * @param licenseContractAddress The address of the license contract that 
-     *                               shall be disabled
-     */
-    function disableLicenseContract(address licenseContractAddress) external onlyOwner {
-        LicenseContract(licenseContractAddress).disable();
-    }
-
     // Managing root contract
 
     /**

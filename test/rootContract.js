@@ -112,42 +112,6 @@ contract("License contract's root", function(accounts) {
   });
 });
 
-contract("License contract disabling", function(accounts) {
-  accounts = require("../accounts.js")(accounts);
-
-  var rootContract;
-  var licenseContract;
-
-  before(function() {
-    return RootContract.deployed().then(function(instance) {
-      rootContract = instance;
-      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    })
-    .then(function(transaction) {
-      var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
-      assert.equal(creationLogs.length, 1);
-      var creationLog = creationLogs[0];
-      var licenseContractAddress = creationLog.args.licenseContractAddress;
-      licenseContract = LicenseContract.at(licenseContractAddress);
-    })
-  });
-
-  it("cannot be done by anyone but the root contract owner", function() {
-    return rootContract.disableLicenseContract(licenseContract.address, {from: accounts.firstOwner})
-    .thenSolidityThrow();
-  });
-
-  it("can be performed by the root contract owner", function() {
-    return rootContract.disableLicenseContract(licenseContract.address, {from: accounts.lobRootOwner})
-    .then(function() {
-      return licenseContract.disabled();
-    })
-    .then(function(disabled) {
-      assert.equal(disabled, true);
-    })
-  });
-});
-
 contract("Withdrawal from license contracts", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
@@ -280,7 +244,7 @@ contract("Creating a new license contract", function(accounts) {
       return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 3309092, "createLicenseContract");
+      assert.transactionCost(transaction, 3291445, "createLicenseContract");
     });
   });
 

@@ -690,11 +690,10 @@ contract LicenseContract {
     /**
     * Disable the license contract, disallowing any further license issuances 
     * and license revocations while still allowing licenses to be transferred. 
-    * This action cannot be undone. It can only be performed by the LOB root and 
-    * the issuer.
+    * This action cannot be undone. It can only be performed by the issuer.
     */
     function disable() external {
-        require(msg.sender == lobRoot || msg.sender == issuer);
+        require(msg.sender == issuer);
         Disabling();
         disabled = true;
     }
