@@ -62,7 +62,7 @@ contract RootContract {
 
     // Constructor
 
-    function RootContract() {
+    function RootContract() public {
         owner = msg.sender;
     }
 
