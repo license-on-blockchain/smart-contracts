@@ -36,7 +36,7 @@ contract RootContract {
 
     /**
      * The fee that will be set on each newly created license contract and which
-     * will need to be paid for every issuance on the license contract.
+     * will need to be paid for every issuance on the license contract. In Wei.
      */
     uint128 public defaultFee;
 
@@ -73,14 +73,14 @@ contract RootContract {
      * issuer. Once this call has be executed, the newly created license 
      * contract needs to be signed before it can issue licenses.
      *
-     * This contract is by default the LOB root of the license contract and the 
-     * invoker of this function the license contract's issuer.
+     * This contract is the LOB root of the license contract and the invoker of 
+     * this function the license contract's issuer.
      *
      * @param issuerName A human readable name of the person or organisation 
      *                   that will use the license contract to issue LOB 
      *                   licenses
-     * @param liability The liability that shall be substitute into the 
-     *                  liability placeholder of the certificate text
+     * @param liability A free text in which the issuer can describe the 
+     *                  liability he will take for all of his issuances
      * @param safekeepingPeriod The amount of years all documents having to do 
      *                          with the audit will be kept by the issuer
      * @param issuerCertificate The SSL certificate that will be used to sign 
@@ -144,15 +144,15 @@ contract RootContract {
 
     /**
      * Withdraw fees collected by a license contract from the license contract 
-     * and transfer them to the given recpient address.
+     * and transfer them to `recipient`.
      *
      * This can only be invoked by the root contract's owner.
      *
      * @param licenseContractAddress The address of the license contract from 
      *                               which collected fees shall be withdrawn
-     * @param amount The amount of wei that shall be withdrawn from the license 
+     * @param amount The amount of Wei that shall be withdrawn from the license 
      *               contract
-     * @param recipient The address to which the withdrawn wei should be sent
+     * @param recipient The address to which the withdrawn Wei should be sent
      */
     function withdrawFromLicenseContract(address licenseContractAddress, uint256 amount, address recipient) external onlyOwner {
         LicenseContract(licenseContractAddress).withdraw(amount, recipient);

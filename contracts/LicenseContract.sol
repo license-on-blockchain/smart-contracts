@@ -41,13 +41,12 @@ library LicenseContractLib {
         uint32 auditTime;
 
         /**
-         * The audit remark that shall be substituted into the audit remark 
-         * placeholder of the certificate text for this issuance.
+         * A free text field containing the result of the license audit.
          */
         string auditRemark;
 
         /** 
-         * Whether or not the issuance has been revoked, thus not allowing any
+         * Whether or not this issuance has been revoked, thus not allowing any
          * more license transfers.
          */
         bool revoked;
@@ -142,6 +141,7 @@ library LicenseContractLib {
         var issuance = issuances[issuanceID];
         require(!issuance.revoked);
         require(issuance.balance[msg.sender][msg.sender] >= amount);
+        require(to != msg.sender);
 
         issuance.balance[msg.sender][msg.sender] -= amount;
         issuance.balance[to][msg.sender] += amount;
@@ -155,6 +155,7 @@ library LicenseContractLib {
         var issuance = issuances[issuanceID];
         require(!issuance.revoked);
         require(issuance.balance[from][msg.sender] >= amount);
+        require(from != msg.sender);
         
         issuance.balance[from][msg.sender] -= amount;
         issuance.balance[msg.sender][msg.sender] += amount;
@@ -227,9 +228,7 @@ contract LicenseContract {
 
     /**
      * The LOB root address that is allowed to set the fee, withdraw fees and 
-     * disable this license contract. Initially, it is the creator of this 
-     * contract, but may be set to a different address by the LOB root at any
-     * point.
+     * disable this license contract. Equal to the creator of this contract
      */
     address public lobRoot;
 
@@ -283,7 +282,7 @@ contract LicenseContract {
      * upon the issuance of licenses and a transfer to `0x0` means that licenses
      * got destroyed.
      *
-     * @param issuanceID The issuance in which licenses are transferred
+     * @param issuanceID The issuance to which the transferred licenses belong
      * @param from The address that previously owned the licenses
      * @param to The address that the licenses are transferred to
      * @param amount The number of licenses transferred in this transfer
@@ -293,10 +292,10 @@ contract LicenseContract {
     event Transfer(uint256 issuanceID, address from, address to, uint64 amount, bool reclaimable);
 
     /**
-     * Fired every time an address reclaims that were previously transferred 
-     * with the right to be reclaimed.
+     * Fired every time an address reclaims licenses that were previously 
+     * transferred with the right to be reclaimed.
      *
-     * @param issuanceID The issuance in which licenses are transferred
+     * @param issuanceID The issuance to which the reclaimed licenses belong
      * @param from The address to whom the licenses were previously transferred
      * @param to The address that now reclaims the licenses
      * @param amount The number of licenses `to` reclaims from `from`
@@ -306,13 +305,13 @@ contract LicenseContract {
     /**
      * Fired when an issuance gets revoked by the issuer.
      *
-     * @param issuanceID The issuance that gets revoked
+     * @param issuanceID The ID of the issuance that gets revoked
      */
     event Revoke(uint256 issuanceID);
 
     /**
-     * Fired when the fee requrired to issue new licenses changes. Fired 
-     * initially with the constructor of this contract.
+     * Fired when the fee required to issue new licenses changes. Fired 
+     * with the default fee from the constructor of this contract.
      *
      * @param newFee The new fee that is required every time licenses are issued
      */
@@ -333,7 +332,7 @@ contract LicenseContract {
 
     /**
      * Create a new license contract. The sender of this message is the initial 
-     * LOB root.
+     * LOB root. Should only be invoked by the root contract.
      *
      * @param _issuer The address that will be allowed to issue licenses via 
      *                this contract
@@ -398,10 +397,11 @@ contract LicenseContract {
 
     /**
     * Issue new LOB licenses. The following conditions must be satisfied for 
-    * this function to be called:
+    * this function to succeed:
     *  - The fee must be transmitted together with this message
     *  - The function must be called by the issuer
     *  - The license contract must not be disabled
+    *  - The license contract needs to be signed
     *
     * It will create a new issuance whose ID is returned by the function. The 
     * event `Issuing` is also fired with the ID of the newly created issuance.
@@ -413,8 +413,9 @@ contract LicenseContract {
     * @param originalOwner The name of the person or organisation to whom the
     *                      licenses shall be issued and who may transfer them 
     *                      on
-    * @param numLicenses The number of licenses to be issued
-    * @param auditRemark A text to be filled into the audit remark placeholder
+    * @param numLicenses The number of separately tradable licenses to be issued
+    * @param auditRemark A free text field containing the result of the license 
+    *                    audit
     * @param auditTime The time at which the audit was performed
     * @param initialOwner The address that shall initially own all the licenses
     *
@@ -454,7 +455,7 @@ contract LicenseContract {
      * `i < relevantIssuancesCount(owner)`. 
      *
      * Note that because `relevantIssuances` may contain duplicate and outdated 
-     * entries, the number of acutally relevant issuances for this owner may be 
+     * entries, the number of actually relevant issuances for this owner may be 
      * smaller than the number returned by this method.
      *
      * @param owner The owner for which relevant issuances shall be determined
@@ -476,8 +477,8 @@ contract LicenseContract {
      * `originalOwner` is able to reclaim licenses from is likely lower than
      * the count returned by this function.
      *
-     * @param issuanceID The issuance id for which addresses from which licenses
-     *                   may be reclaimable shall be determined
+     * @param issuanceID The issuance ID for which the addresses from which 
+     *                   licenses may be reclaimable shall be determined
      * @param originalOwner The address that would like to reclaim licenses
      *
      * @return An upper bound (exclusive) on the index for 
@@ -489,7 +490,7 @@ contract LicenseContract {
 
     /**
      * Return the `index`th address from which licenses may be reclaimable by
-     * originalOwner. The maximum index can be determined using 
+     * `originalOwner`. The maximum index can be determined using 
      * `addressesLicensesCanBeReclaimedFromCount`.
      *
      * `addressesLicensesCanBeReclaimedFrom` is a list of addresses to which 
@@ -499,7 +500,7 @@ contract LicenseContract {
      * licenses may be reclaimed. Whenever `x` has transferred a licenses
      * to `y` with the right to reclaim it, `y` will be in 
      * `addressesLicensesCanBeReclaimedFrom[x]`. The list is  never 
-     * cleared, thus the existance of an address in the list does not 
+     * cleared, thus the existence of an address in the list does not 
      * guarantee that a reclaim is possible (e.g. if the licenses has 
      * already been reclaimed).
      * Addresses may occur multiple times in the list, since it is only 
@@ -566,9 +567,10 @@ contract LicenseContract {
     * but which may be reclaimed by `reclaimer`.
     *
     * @param issuanceID The issuance for which the balance shall be determined
-    * @param owner The address for which the balance shall be determined
-    * @param reclaimer The address that shall be allowed to reclaim licenses 
-    *                  from `owner`
+    * @param owner The address that owns the licenses but from which the 
+    *              licenses may be taken from `reclaimer`
+    * @param reclaimer The address that is allowed to reclaim licenses from
+    *                  `owner`
     * 
     * @return The number of licenses owned by `owner` but which may be 
     *         reclaimed by `reclaimer`
@@ -589,7 +591,8 @@ contract LicenseContract {
     * Upon successful transfer, this fires the `Transfer` event with 
     * `reclaimable` set to `false`.
     *
-    * @param issuanceID The issuance out of which licenses shall be transferred
+    * @param issuanceID The issuance to which the licenses to be transferred 
+    *                   belong
     * @param to The address the licenses shall be transferred to
     * @param amount The number of licenses that shall be transferred
     */
@@ -607,17 +610,18 @@ contract LicenseContract {
     * This requires that:
     *  - The sender properly owns at least `amount` licenses of the given 
     *    issuance
+    *  - The sender is different from `to`
     *  - The issuance has not been revoked
     *
     * Upon successful transfer, this fires the `Transfer` event with 
     * `reclaimable` set to `true`.
     *
-    * @param issuanceID The issuance out of which licenses shall be transferred
+    * @param issuanceID The issuance to which the licenses to be transferred 
+    *                   belong
     * @param to The address the licenses shall be transferred to
     * @param amount The number of licenses that shall be transferred
     */
     function transferAndAllowReclaim(uint256 issuanceID, address to, uint64 amount) external {
-        require(to != msg.sender);
         relevantIssuances[to].push(issuanceID);
         issuances.transferFromSenderAndAllowReclaim(issuanceID, to, amount);
     }
@@ -630,11 +634,13 @@ contract LicenseContract {
     * This requires that:
     *  - The sender previously transferred at least `amount` licenses to `from`
     *    with the right to reclaim them
+    *  - The sender is different from `from`
     *  - The issuance has not been revoked
     *
     * Upon successful reclaim, the `Reclaim` event is fired.
     *
-    * @param issuanceID The issuance out of which licenses shall be reclaimed
+    * @param issuanceID The issuance to which the licenses to be reclaimed 
+    *                   belong
     * @param from The address from which licenses shall be reclaimed
     * @param amount The number of licenses that shall be reclaimed
     */
@@ -662,7 +668,7 @@ contract LicenseContract {
     * Set the fee required for every license issuance to a new amount. This can 
     * only be done by the LOB root.
     *
-    * @param newFee The new fee in wei
+    * @param newFee The new fee in Wei
     */
     function setFee(uint128 newFee) onlyLOBRoot external {
         fee = newFee;
@@ -673,7 +679,7 @@ contract LicenseContract {
     * Withdraw Ether that have been collected as fees from the license contract
     * to the address `recipient`. This can only be initiated by the LOB root.
     *
-    * @param amount The amount that shall be withdrawn in wei
+    * @param amount The amount that shall be withdrawn in Wei
     * @param recipient The address that shall receive the withdrawal
     */
     function withdraw(uint256 amount, address recipient) onlyLOBRoot external {
@@ -681,8 +687,8 @@ contract LicenseContract {
     }
 
     /**
-    * Disable the license contract, disallowing any futher license issuances 
-    * while still allowing licenses to be transferred. This action cannnot be 
+    * Disable the license contract, disallowing any further license issuances 
+    * while still allowing licenses to be transferred. This action cannot be 
     * undone. It can only be performed by the LOB root and the issuer.
     */
     function disable() external {
