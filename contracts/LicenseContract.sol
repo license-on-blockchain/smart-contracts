@@ -656,6 +656,7 @@ contract LicenseContract {
     * @param issuanceID The ID of the issuance that shall be revoked
     */
     function revoke(uint256 issuanceID) external onlyIssuer {
+        require(!disabled);
         issuances[issuanceID].revoked = true;
         Revoke(issuanceID);
     }
@@ -688,8 +689,9 @@ contract LicenseContract {
 
     /**
     * Disable the license contract, disallowing any further license issuances 
-    * while still allowing licenses to be transferred. This action cannot be 
-    * undone. It can only be performed by the LOB root and the issuer.
+    * and license revocations while still allowing licenses to be transferred. 
+    * This action cannot be undone. It can only be performed by the LOB root and 
+    * the issuer.
     */
     function disable() external {
         require(msg.sender == lobRoot || msg.sender == issuer);

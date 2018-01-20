@@ -596,6 +596,17 @@ contract("Revoking an issuing", function(accounts) {
 contract("Disabling the license contract", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
+  before(function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.sign("0x051381", {from: accounts.issuer});
+    })
+    .then(function() {
+      return licenseContract.issueLicense("Desc", "ID", "First original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 500});
+    });
+  });
+
   it("cannot be performed by anyone else", function() {
     return LicenseContract.deployed().then(function(instance) {
       return instance.disable({from: accounts.firstOwner});
@@ -634,6 +645,14 @@ contract("Disabling the license contract", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       return instance.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer});
+    })
+    .thenSolidityThrow();
+  });
+
+  it("does not allow issuances to be revoked after the contract has been disabled", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.revoke(0, {from: accounts.issuer});
     })
     .thenSolidityThrow();
   });
