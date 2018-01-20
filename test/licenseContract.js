@@ -351,14 +351,14 @@ contract("License transfer", function(accounts) {
     .thenSolidityThrow();
   });
 
-  it("can transfer licenses less licenses than currently owned by the sender", function() {
+  it("can transfer less licenses than currently owned by the sender", function() {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
       return licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 79067, "transfer");
+      assert.transactionCost(transaction, 79003, "transfer");
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
@@ -443,7 +443,7 @@ contract("Reclaimable license transfer", function(accounts) {
       return licenseContract.transferAndAllowReclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 140574, "transferAndReclaim");
+      assert.transactionCost(transaction, 140510, "transferAndReclaim");
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
@@ -464,7 +464,7 @@ contract("Reclaimable license transfer", function(accounts) {
       return instance.reclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 22722, "reclaim");
+      assert.transactionCost(transaction, 22711, "reclaim");
     })
     .thenBalance(0, accounts.firstOwner, 70)
     .thenBalance(0, accounts.secondOwner, 0)
