@@ -184,6 +184,14 @@ contract("LicenseContract constructor", function(accounts) {
       assert.equal(disabled.valueOf(), false);
     });
   });
+
+  it("should set the manager address to 0x0", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.managerAddress();
+    }).then(function(managerAddress) {
+      assert.equal(managerAddress.valueOf(), '0x0000000000000000000000000000000000000000');
+    });
+  });
 });
 
 contract("License contract signature", function(accounts) {
@@ -237,6 +245,18 @@ contract("License issuing", function(accounts) {
     }).thenSolidityThrow();
   });
 
+  it("cannot be performed by the LOB root", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.lobRoot, value: 500});
+    }).thenSolidityThrow();
+  });
+
+  it("cannot be performed by the LOB root owner", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.lobRootOwner, value: 500});
+    }).thenSolidityThrow();
+  });
+
   it("cannot be performed if fee is not transmitted", function() {
     return LicenseContract.deployed().then(function(instance) {
       return instance.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 10});
@@ -249,7 +269,7 @@ contract("License issuing", function(accounts) {
       licenseContract = instance;
       return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 500});
     }).then(function(transaction) {
-      assert.transactionCost(transaction, 223854, "license issuing");
+      assert.transactionCost(transaction, 224153, "license issuing");
     }).then(function() {
       return licenseContract.issuancesCount();
     }).then(function(issuancesCount) {
@@ -358,7 +378,7 @@ contract("License transfer", function(accounts) {
       return licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 79003, "transfer");
+      assert.transactionCost(transaction, 79025, "transfer");
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
@@ -464,7 +484,7 @@ contract("Reclaimable license transfer", function(accounts) {
       return instance.reclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 22711, "reclaim");
+      assert.transactionCost(transaction, 22722, "reclaim");
     })
     .thenBalance(0, accounts.firstOwner, 70)
     .thenBalance(0, accounts.secondOwner, 0)
@@ -567,7 +587,19 @@ contract("Revoking an issuing", function(accounts) {
       return licenseContract.revoke(0, {from: accounts.firstOwner});
     })
     .thenSolidityThrow();
-  })
+  });
+
+  it("cannot be performed by the LOB root", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.lobRoot, value: 500});
+    }).thenSolidityThrow();
+  });
+
+  it("cannot be performed by the LOB root owner if it has not taken over control", function() {
+    return LicenseContract.deployed().then(function(instance) {
+      return instance.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.lobRootOwner, value: 500});
+    }).thenSolidityThrow();
+  });
 
   it("can be performed by the issuer", function() {
     var licenseContract;
@@ -718,3 +750,93 @@ contract("Withdrawing fees", function(accounts) {
     }).thenSolidityThrow();
   });
 });
+
+contract("Taking over management", function(accounts) {
+  accounts = require("../accounts.js")(accounts);
+
+  before(function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.sign("0x051381", {from: accounts.issuer});
+    });
+  });
+
+  it("cannot be done by anyone but the LOB root", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 7000});
+    }).then(function() {
+      return licenseContract.takeOverManagementControl(accounts.issuer, {from: accounts.issuer});
+    }).thenSolidityThrow();
+  });
+
+  it("can be done by the LOB root", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.takeOverManagementControl(accounts.manager, {from: accounts.lobRoot});
+    }).then(function() {
+      licenseContract.managerAddress();
+    }).then(function(managerAddress) {
+      assert.equal(managerAddress, accounts.managerAddress);
+    })
+  });
+
+  it("disallows the issuer to issue licenses", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 7000});
+    }).thenSolidityThrow();
+  });
+
+  it("disallows the issuer to revoke licenses", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.revoke(0, {from: accounts.issuer});
+    }).thenSolidityThrow();
+  });
+
+  it("disallows the issuer to disable the license contract", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.disable({from: accounts.issuer});
+    }).thenSolidityThrow();
+  });
+
+  it("allows the manager to revoke licenses", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.revoke(0, {from: accounts.manager});
+    }).then(function() {
+      return licenseContract.issuances(0); 
+    }).then(function(issuance) {
+      assert.equal(new Issuance(issuance).revoked, true);
+    });
+  });
+
+  it("does not allow the LOB root to issue licenses", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.manager, value: 7000});
+    }).thenSolidityThrow();
+  });
+
+  it("allows the LOB root to disable the license contract", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.disable({from: accounts.manager});
+    }).then(function() {
+      return licenseContract.disabled();
+    }).then(function(disabled) {
+      assert.equal(disabled, true);
+    });
+  });
+})

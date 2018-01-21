@@ -7,5 +7,6 @@ module.exports = function(accounts) {
   	secondOwner: accounts[4],
   	thirdOwner: accounts[5],
   	fourthOwner: accounts[6],
+  	manager: accounts[7]
   }
 };

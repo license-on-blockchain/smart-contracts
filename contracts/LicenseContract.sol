@@ -182,6 +182,15 @@ contract LicenseContract {
     }
 
     /**
+     * Asserts that the message is sent by the issuer if `managerAddress` is 
+     * `0x0` or `managerAddress` if it is not `0x0`.
+     */
+    modifier onlyCurrentManager() {
+        require((msg.sender == issuer && managerAddress == address(0)) || msg.sender == managerAddress);
+        _;
+    }
+
+    /**
      * A human readable name that unambiguously describes the person or 
      * organisation issuing licenses via this contract. 
      * This should to the most possible extend match the name in the 
@@ -266,6 +275,14 @@ contract LicenseContract {
      */
     mapping(address => uint256[]) public relevantIssuances;
 
+    /**
+     * If the LOB root has taken over control for this license contract, this is
+     * the address that now manages the contract and thus has the right to 
+     * revoke licenses and disable the contract.
+     *
+     * If the address is `0x0`, the LOB root has not taken over control.
+     */
+    address public managerAddress;
 
 
     // Events
@@ -326,6 +343,14 @@ contract LicenseContract {
      * Fired when the smart contract gets disabled.
      */
     event Disabling();
+
+    /**
+     * Fired when LOB takes over control for this license contract.
+     *
+     * @param managerAddress The address that now manages the contract. `0x0` if
+     *                       control is passed back to the issuer.
+     */
+    event ManagementControlTakeOver(address managerAddress);
 
 
     // Constructor
@@ -402,6 +427,7 @@ contract LicenseContract {
     *  - The function must be called by the issuer
     *  - The license contract must not be disabled
     *  - The license contract needs to be signed
+    *  - LOB must not have taken over control for the license contract
     *
     * It will create a new issuance whose ID is returned by the function. The 
     * event `Issuing` is also fired with the ID of the newly created issuance.
@@ -436,6 +462,7 @@ contract LicenseContract {
         returns (uint256)
     {
         require(!disabled);
+        require(managerAddress == address(0));
         // The license contract hasn't be initialised completely if it has not 
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
@@ -650,12 +677,13 @@ contract LicenseContract {
 
     /**
     * Revoke the given issuance, disallowing any further license transfers or
-    * reclaims. This action cannot be undone and can only be 
-    * performed by the issuer.
+    * reclaims. This action cannot be undone and can only be  performed by the 
+    * issuer or the manager if LOB has taken over control for this license 
+    * contract.
     *
     * @param issuanceID The ID of the issuance that shall be revoked
     */
-    function revoke(uint256 issuanceID) external onlyIssuer {
+    function revoke(uint256 issuanceID) onlyCurrentManager external {
         require(!disabled);
         issuances[issuanceID].revoked = true;
         Revoke(issuanceID);
@@ -690,12 +718,33 @@ contract LicenseContract {
     /**
     * Disable the license contract, disallowing any further license issuances 
     * and license revocations while still allowing licenses to be transferred. 
-    * This action cannot be undone. It can only be performed by the issuer.
+    * This action cannot be undone. It can only be performed by the issuer or 
+    * the manager if LOB has taken over control for this license contract.
     */
-    function disable() external {
-        require(msg.sender == issuer);
+    function disable() onlyCurrentManager external {
         Disabling();
         disabled = true;
+    }
+
+    /**
+     * This allows the LOB root to take over managment for this license contract
+     * to fix any mistakes or clean the contract up in case the issuer has lost
+     * access to his address. It will set the contract into a special managment
+     * mode that disallows any managment action by the issuer and grants all
+     * the managment address the right to revoke issuances and disable the 
+     * license contract.
+     *
+     * Setting the manager address back to `0x0` gives control back to the 
+     * issuer.
+     *
+     * This can only be invoked by the LOB root.
+     *
+     * @param _managerAddress The address that will be allowed to perform 
+     *                        managment actions on this license contract.
+     */
+    function takeOverManagementControl(address _managerAddress) onlyLOBRoot external {
+        managerAddress = _managerAddress;
+        ManagementControlTakeOver(_managerAddress);
     }
 
     /**
