@@ -12,8 +12,8 @@ Promise.prototype.thenSolidityThrow = function(description) {
 };
 
 assert.transactionCost = function(transaction, expectedCost, methodName) {
-  assert.isAtMost(transaction.receipt.gasUsed, expectedCost, "Regression in gas usage for " + methodName + " by " + (transaction.receipt.gasUsed - expectedCost) + " gas");
-  assert.isAtLeast(transaction.receipt.gasUsed, expectedCost, "🎉 Improvement in gas usage for " + methodName + " by " + (expectedCost - transaction.receipt.gasUsed) + " gas");
+  assert.isAtMost(transaction.receipt.gasUsed, expectedCost + 64, "Regression in gas usage for " + methodName + " by " + (transaction.receipt.gasUsed - expectedCost) + " gas");
+  assert.isAtLeast(transaction.receipt.gasUsed, expectedCost - 64, "🎉 Improvement in gas usage for " + methodName + " by " + (expectedCost - transaction.receipt.gasUsed) + " gas");
 };
 
 var LicenseContract = artifacts.require("./LicenseContract.sol");
