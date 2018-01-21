@@ -76,6 +76,9 @@ contract RootContract {
      * This contract is the LOB root of the license contract and the invoker of 
      * this function the license contract's issuer.
      *
+     * The SSL certificate needs to be PKCS#12 encoded and encrypted with an 
+     * empty password.
+     *
      * @param issuerName A human readable name of the person or organisation 
      *                   that will use the license contract to issue LOB 
      *                   licenses
@@ -83,14 +86,13 @@ contract RootContract {
      *                  liability he will take for all of his issuances
      * @param safekeepingPeriod The amount of years all documents having to do 
      *                          with the audit will be kept by the issuer
-     * @param issuerCertificate The SSL certificate that will be used to sign 
-     *                          the license contract. See the license contract's
-     *                          documentation on the requirements of this 
-     *                          certificate
+     * @param issuerSSLCertificate The SSL certificate that will be used to sign 
+     *                             the license contract. See the license contract's
+     *                             documentation on the requirements of this 
+     *                             certificate
      */
-    // TODO: In which format shall the certificate be?
-    function createLicenseContract(string issuerName, string liability, uint8 safekeepingPeriod, bytes issuerCertificate) external notDisabled returns (address) {
-        var licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, issuerCertificate, safekeepingPeriod, defaultFee);
+    function createLicenseContract(string issuerName, string liability, uint8 safekeepingPeriod, bytes issuerSSLCertificate) external notDisabled returns (address) {
+        var licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, issuerSSLCertificate, safekeepingPeriod, defaultFee);
         licenseContracts.push(licenseContractAddress);
         LicenseContractCreation(licenseContractAddress);
         return licenseContractAddress;

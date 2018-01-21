@@ -283,9 +283,9 @@ contract("Creating a new license contract", function(accounts) {
   });
 
   it("carries the issuer's certificate", function() {
-    return licenseContract.issuerCertificate()
-    .then(function(issuerCertificate) {
-      assert.equal(issuerCertificate.valueOf(), "0x5e789a");
+    return licenseContract.issuerSSLCertificate()
+    .then(function(issuerSSLCertificate) {
+      assert.equal(issuerSSLCertificate.valueOf(), "0x5e789a");
     });
   });
 

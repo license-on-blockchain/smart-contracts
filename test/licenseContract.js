@@ -139,7 +139,7 @@ contract("LicenseContract constructor", function(accounts) {
 
   it("should set the issuer's certificate", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issuerCertificate();
+      return instance.issuerSSLCertificate();
     }).then(function(certificate) {
       assert.equal(certificate.valueOf(), '0x0ce8');
     });
