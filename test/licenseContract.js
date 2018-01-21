@@ -21,21 +21,21 @@ Promise.prototype.thenBalance = function(issuanceNumber, account, balance) {
   })
 };
 
-Promise.prototype.thenReclaimableBalance = function(issuanceNumber, account, balance) {
+Promise.prototype.thenTemporaryBalance = function(issuanceNumber, account, balance) {
   return this.then(function() {
     return LicenseContract.deployed();
   }).then(function(instance) {
-    return instance.reclaimableBalance(issuanceNumber, account);
+    return instance.temporaryBalance(issuanceNumber, account);
   }).then(function(actualBalance) {
     assert.equal(actualBalance.valueOf(), balance)
   });
 };
 
-Promise.prototype.thenReclaimableBalanceBy = function(issuanceNumber, account, reclaimer, balance) {
+Promise.prototype.thenTemporaryBalanceReclaimableBy = function(issuanceNumber, account, reclaimer, balance) {
   return this.then(function() {
     return LicenseContract.deployed();
   }).then(function(instance) {
-    return instance.reclaimableBalanceBy(issuanceNumber, account, reclaimer);
+    return instance.temporaryBalanceReclaimableBy(issuanceNumber, account, reclaimer);
   }).then(function(actualBalance) {
     assert.equal(actualBalance.valueOf(), balance)
   });
@@ -467,12 +467,12 @@ contract("Reclaimable license transfer", function(accounts) {
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
-    .thenReclaimableBalance(0, accounts.firstOwner, 0)
-    .thenReclaimableBalance(0, accounts.secondOwner, 20)
-    .thenReclaimableBalanceBy(0, accounts.firstOwner, accounts.firstOwner, 50)
-    .thenReclaimableBalanceBy(0, accounts.firstOwner, accounts.secondOwner, 0)
-    .thenReclaimableBalanceBy(0, accounts.secondOwner, accounts.firstOwner, 20)
-    .thenReclaimableBalanceBy(0, accounts.secondOwner, accounts.secondOwner, 0)
+    .thenTemporaryBalance(0, accounts.firstOwner, 0)
+    .thenTemporaryBalance(0, accounts.secondOwner, 20)
+    .thenTemporaryBalanceReclaimableBy(0, accounts.firstOwner, accounts.firstOwner, 50)
+    .thenTemporaryBalanceReclaimableBy(0, accounts.firstOwner, accounts.secondOwner, 0)
+    .thenTemporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.firstOwner, 20)
+    .thenTemporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.secondOwner, 0)
     .thenRelevantIssuances(accounts.firstOwner, [0])
     .thenRelevantIssuances(accounts.secondOwner, [0])
     .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.firstOwner, [accounts.secondOwner])
@@ -488,9 +488,9 @@ contract("Reclaimable license transfer", function(accounts) {
     })
     .thenBalance(0, accounts.firstOwner, 70)
     .thenBalance(0, accounts.secondOwner, 0)
-    .thenReclaimableBalance(0, accounts.firstOwner, 0)
-    .thenReclaimableBalance(0, accounts.secondOwner, 0)
-    .thenReclaimableBalanceBy(0, accounts.secondOwner, accounts.firstOwner, 0)
+    .thenTemporaryBalance(0, accounts.firstOwner, 0)
+    .thenTemporaryBalance(0, accounts.secondOwner, 0)
+    .thenTemporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.firstOwner, 0)
     .thenRelevantIssuances(accounts.firstOwner, [0])
     .thenRelevantIssuances(accounts.secondOwner, [0])
     .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.firstOwner, [accounts.secondOwner])
@@ -513,9 +513,9 @@ contract("Reclaimable license transfer", function(accounts) {
     })
     .thenBalance(0, accounts.firstOwner, 60)
     .thenBalance(0, accounts.secondOwner, 10)
-    .thenReclaimableBalance(0, accounts.firstOwner, 0)
-    .thenReclaimableBalance(0, accounts.secondOwner, 10)
-    .thenReclaimableBalanceBy(0, accounts.secondOwner, accounts.firstOwner, 10)
+    .thenTemporaryBalance(0, accounts.firstOwner, 0)
+    .thenTemporaryBalance(0, accounts.secondOwner, 10)
+    .thenTemporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.firstOwner, 10)
   });
 
   it("does not allow the borrower to transfer the licenses on", function() {

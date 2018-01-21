@@ -585,36 +585,36 @@ contract LicenseContract {
     }
 
     /**
-    * Determine the number of licenses of a given issuance owned by `owner` 
-    * but which may be reclaimed by a different address (i.e. excluding 
-    * licenses that are properly owned by `owner`).
-    *
-    * @param issuanceNumber The issuance for which the balance shall be 
-    *                       determined
-    * @param owner The address for which the balance shall be determined
-    * 
-    * @return The number of licenses owned by `owner` but which may be 
-    *         reclaimed by someone else
-    */
-    function reclaimableBalance(uint256 issuanceNumber, address owner) external constant returns (uint64) {
+     * Determine the number of licenses of a given issuance owned by `owner` 
+     * but which may be reclaimed by a different address (i.e. excluding 
+     * licenses that are properly owned by `owner`).
+     *
+     * @param issuanceNumber The issuance for which the balance shall be 
+     *                       determined
+     * @param owner The address for which the balance shall be determined
+     * 
+     * @return The number of licenses owned by `owner` but which may be 
+     *         reclaimed by someone else
+     */
+    function temporaryBalance(uint256 issuanceNumber, address owner) external constant returns (uint64) {
         return issuances[issuanceNumber].temporaryBalance[owner];
     }
 
     /**
-    * Determine the number of licenses of a given issuance owned by `owner` 
-    * but which may be reclaimed by `reclaimer`.
-    *
-    * @param issuanceNumber The issuance for which the balance shall be
-    *                       determined
-    * @param owner The address that owns the licenses but from which the 
-    *              licenses may be taken from `reclaimer`
-    * @param reclaimer The address that is allowed to reclaim licenses from
-    *                  `owner`
-    * 
-    * @return The number of licenses owned by `owner` but which may be 
-    *         reclaimed by `reclaimer`
-    */
-    function reclaimableBalanceBy(uint256 issuanceNumber, address owner, address reclaimer) external constant returns (uint64) {
+     * Determine the number of licenses of a given issuance owned by `owner` 
+     * but which may be reclaimed by `reclaimer`.
+     *
+     * @param issuanceNumber The issuance for which the balance shall be
+     *                       determined
+     * @param owner The address that owns the licenses but from which the 
+     *              licenses may be reclaimed by `reclaimer`
+     * @param reclaimer The address that is allowed to reclaim licenses from
+     *                  `owner`
+     * 
+     * @return The number of licenses owned by `owner` but which may be 
+     *         reclaimed by `reclaimer`
+     */
+    function temporaryBalanceReclaimableBy(uint256 issuanceNumber, address owner, address reclaimer) external constant returns (uint64) {
         return issuances[issuanceNumber].balance[owner][reclaimer];
     }
 
