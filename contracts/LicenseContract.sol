@@ -99,9 +99,9 @@ library LicenseContractLib {
 
     // Mirror event declarations from LicenseContract to allow them to be 
     // emitted from the library
-    event Issuing(uint256 issuanceID);
-    event Transfer(uint256 issuanceID, address from, address to, uint64 amount, bool reclaimable);
-    event Reclaim(uint256 issuanceID, address from, address to, uint64 amount);
+    event Issuing(uint256 issuanceNumber);
+    event Transfer(uint256 issuanceNumber, address from, address to, uint64 amount, bool reclaimable);
+    event Reclaim(uint256 issuanceNumber, address from, address to, uint64 amount);
 
     /**
      * Insert a new issuance with the given parameters into the array. Due to 
@@ -115,32 +115,32 @@ library LicenseContractLib {
     }
 
     /**
-     * Assign the originalSupply member of the issuance with the given ID and
-     * assign `initialOwnerAddress` all initial licenses. This also emits all 
-     * corresponding events.
+     * Assign the originalSupply member of the issuance with the given issuance
+     * number and assign `initialOwnerAddress` all initial licenses. This also 
+     * emits all corresponding events.
      */
-    function createInitialLicenses(Issuance[] storage issuances, uint256 issuanceID, uint64 originalSupply, address initialOwnerAddress) public returns (uint256) {
-        var issuance = issuances[issuanceID];
+    function createInitialLicenses(Issuance[] storage issuances, uint256 issuanceNumber, uint64 originalSupply, address initialOwnerAddress) public returns (uint256) {
+        var issuance = issuances[issuanceNumber];
         issuance.originalSupply = originalSupply;
-        issuances[issuanceID].balance[initialOwnerAddress][initialOwnerAddress] = originalSupply;
-        Issuing(issuanceID);
-        Transfer(issuanceID, 0x0, initialOwnerAddress, originalSupply, false);
-        return issuanceID;
+        issuances[issuanceNumber].balance[initialOwnerAddress][initialOwnerAddress] = originalSupply;
+        Issuing(issuanceNumber);
+        Transfer(issuanceNumber, 0x0, initialOwnerAddress, originalSupply, false);
+        return issuanceNumber;
     }
 
-    function transferFromMessageSender(Issuance[] storage issuances, uint256 issuanceID, address to, uint64 amount) internal {
-        var issuance = issuances[issuanceID];
+    function transferFromMessageSender(Issuance[] storage issuances, uint256 issuanceNumber, address to, uint64 amount) internal {
+        var issuance = issuances[issuanceNumber];
         require(!issuance.revoked);
         require(issuance.balance[msg.sender][msg.sender] >= amount);
 
         issuance.balance[msg.sender][msg.sender] -= amount;
         issuance.balance[to][to] += amount;
 
-        Transfer(issuanceID, /*from*/msg.sender, to, amount, /*reclaimable*/false);
+        Transfer(issuanceNumber, /*from*/msg.sender, to, amount, /*reclaimable*/false);
     }
 
-    function transferFromSenderAndAllowReclaim(Issuance[] storage issuances, uint256 issuanceID, address to, uint64 amount) internal {
-        var issuance = issuances[issuanceID];
+    function transferFromSenderAndAllowReclaim(Issuance[] storage issuances, uint256 issuanceNumber, address to, uint64 amount) internal {
+        var issuance = issuances[issuanceNumber];
         require(!issuance.revoked);
         require(issuance.balance[msg.sender][msg.sender] >= amount);
         require(to != msg.sender);
@@ -150,11 +150,11 @@ library LicenseContractLib {
         issuance.temporaryBalance[to] += amount;
         issuance.addressesLicensesCanBeReclaimedFrom[msg.sender].push(to);
 
-        Transfer(issuanceID, /*from*/msg.sender, to, amount, /*reclaimable*/true);
+        Transfer(issuanceNumber, /*from*/msg.sender, to, amount, /*reclaimable*/true);
     }
 
-    function reclaimToSender(Issuance[] storage issuances, uint256 issuanceID, address from, uint64 amount) public {
-        var issuance = issuances[issuanceID];
+    function reclaimToSender(Issuance[] storage issuances, uint256 issuanceNumber, address from, uint64 amount) public {
+        var issuance = issuances[issuanceNumber];
         require(!issuance.revoked);
         require(issuance.balance[from][msg.sender] >= amount);
         require(from != msg.sender);
@@ -163,7 +163,7 @@ library LicenseContractLib {
         issuance.balance[msg.sender][msg.sender] += amount;
         issuance.temporaryBalance[from] -= amount;
 
-        Reclaim(issuanceID, from, /*to*/msg.sender, amount);
+        Reclaim(issuanceNumber, from, /*to*/msg.sender, amount);
     }
 }
 
@@ -262,18 +262,18 @@ contract LicenseContract {
     bytes public signature;
 
     /**
-     * The issuances created by this license contract. The issuance with ID `x`
-     * is `issuances[x]`.
+     * The issuances created by this license contract. The issuance with 
+     * issuance number `x` is `issuances[x]`.
      */
     LicenseContractLib.Issuance[] public issuances;
 
     /**
-     * A list of all the issuanceID for which the given address has ever owned
-     * a license.
+     * A list of all the issuance numbers for which the given address has ever 
+     * owned a license.
      *
-     * This list is never cleared, and the existance of an issuance ID in it 
+     * This list is never cleared, and the existance of an issuance number in it 
      * does not guarantee that the address currently owns licenses of this type.
-     * Also, issuance IDs may occur multiple times.
+     * Also, issuance numbers may occur multiple times.
      */
     mapping(address => uint256[]) public relevantIssuances;
 
@@ -292,41 +292,42 @@ contract LicenseContract {
     /**
      * Fired every time new licenses are issued. 
      *
-     * @param issuanceID The ID of the newly created issuance
+     * @param issuanceNumber The issuance number of the newly created issuance
      */
-    event Issuing(uint256 issuanceID);
+    event Issuing(uint256 issuanceNumber);
 
     /**
      * Fired every time license are transferred. A transfer from `0x0` is fired
      * upon the issuance of licenses and a transfer to `0x0` means that licenses
      * got destroyed.
      *
-     * @param issuanceID The issuance to which the transferred licenses belong
+     * @param issuanceNumber The issuance to which the transferred licenses
+     *                       belong
      * @param from The address that previously owned the licenses
      * @param to The address that the licenses are transferred to
      * @param amount The number of licenses transferred in this transfer
      * @param reclaimable Whether or not `from` is allowed to reclaim the 
      *                    transferred licenses
      */
-    event Transfer(uint256 issuanceID, address from, address to, uint64 amount, bool reclaimable);
+    event Transfer(uint256 issuanceNumber, address from, address to, uint64 amount, bool reclaimable);
 
     /**
      * Fired every time an address reclaims licenses that were previously 
      * transferred with the right to be reclaimed.
      *
-     * @param issuanceID The issuance to which the reclaimed licenses belong
+     * @param issuanceNumber The issuance to which the reclaimed licenses belong
      * @param from The address to whom the licenses were previously transferred
      * @param to The address that now reclaims the licenses
      * @param amount The number of licenses `to` reclaims from `from`
      */
-    event Reclaim(uint256 issuanceID, address from, address to, uint64 amount);
+    event Reclaim(uint256 issuanceNumber, address from, address to, uint64 amount);
 
     /**
      * Fired when an issuance gets revoked by the issuer.
      *
-     * @param issuanceID The ID of the issuance that gets revoked
+     * @param issuanceNumber The issuance that gets revoked
      */
-    event Revoke(uint256 issuanceID);
+    event Revoke(uint256 issuanceNumber);
 
     /**
      * Fired when the fee required to issue new licenses changes. Fired 
@@ -431,8 +432,9 @@ contract LicenseContract {
     *  - The license contract needs to be signed
     *  - LOB must not have taken over control for the license contract
     *
-    * It will create a new issuance whose ID is returned by the function. The 
-    * event `Issuing` is also fired with the ID of the newly created issuance.
+    * It will create a new issuance whose issuance number is returned by the 
+    * function. The event `Issuing` is also fired with the issuance number of 
+    * the newly created issuance.
     * For a more detailed description of the parameters see the documentation
     * of the struct `LicenseContractLib.Issuance`.
     * 
@@ -448,7 +450,7 @@ contract LicenseContract {
     * @param initialOwnerAddress The address that shall initially own all the 
     *                            licenses
     *
-    * @return The ID of the newly created issuance
+    * @return The issuance number of the newly created issuance
     */
     function issueLicense(
         string description,
@@ -470,9 +472,9 @@ contract LicenseContract {
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
         require(msg.value >= fee);
-        var issuanceID = issuances.insert(description, code, initialOwnerName, auditTime, auditRemark);
-        relevantIssuances[initialOwnerAddress].push(issuanceID);
-        return issuances.createInitialLicenses(issuanceID, numLicenses, initialOwnerAddress);
+        var issuanceNumber = issuances.insert(description, code, initialOwnerName, auditTime, auditRemark);
+        relevantIssuances[initialOwnerAddress].push(issuanceNumber);
+        return issuances.createInitialLicenses(issuanceNumber, numLicenses, initialOwnerAddress);
     }
 
 
@@ -499,7 +501,7 @@ contract LicenseContract {
 
     /**
      * Return the number of addresses from which `originalOwner` may be able to 
-     * reclaim licenses of issuance with ID `issuanceID`. These addresses can be
+     * reclaim licenses of issuance `issuanceNumber`. These addresses can be
      * retrieved using `addressesLicensesCanBeReclaimedFrom`.
      *
      * Note that because `addressesLicensesCanBeReclaimedFrom` may contain 
@@ -507,15 +509,15 @@ contract LicenseContract {
      * `originalOwner` is able to reclaim licenses from is likely lower than
      * the count returned by this function.
      *
-     * @param issuanceID The issuance ID for which the addresses from which 
-     *                   licenses may be reclaimable shall be determined
+     * @param issuanceNumber The issuance for which the addresses from which 
+     *                       licenses may be reclaimable shall be determined
      * @param originalOwner The address that would like to reclaim licenses
      *
      * @return An upper bound (exclusive) on the index for 
      *         `addressesLicensesCanBeReclaimedFrom`
      */
-    function addressesLicensesCanBeReclaimedFromCount(uint256 issuanceID, address originalOwner) external constant returns (uint256) {
-        return issuances[issuanceID].addressesLicensesCanBeReclaimedFrom[originalOwner].length;
+    function addressesLicensesCanBeReclaimedFromCount(uint256 issuanceNumber, address originalOwner) external constant returns (uint256) {
+        return issuances[issuanceNumber].addressesLicensesCanBeReclaimedFrom[originalOwner].length;
     }
 
     /**
@@ -536,18 +538,18 @@ contract LicenseContract {
      * Addresses may occur multiple times in the list, since it is only 
      * appended to.
      *
-     * @param issuanceID The issuance id for which addresses from which licenses
-     *                   may be reclaimable shall be determined
+     * @param issuanceNumber The issuance for which addresses from which
+     *                       licenses may be reclaimable shall be determined
      * @param originalOwner The address that would like to reclaim licenses
      * @param index The array index that shall be retrieved. Must be smaller 
      *              than the count returned by
      *              `addressesLicensesCanBeReclaimedFromCount`
      *
      * @return An address from which `originalOwner` may be able to reclaim 
-     *         licenses of the given issuance ID
+     *         licenses of the given issuance number
      */
-    function addressesLicensesCanBeReclaimedFrom(uint256 issuanceID, address originalOwner, uint256 index) external constant returns (address) {
-        return issuances[issuanceID].addressesLicensesCanBeReclaimedFrom[originalOwner][index];
+    function addressesLicensesCanBeReclaimedFrom(uint256 issuanceNumber, address originalOwner, uint256 index) external constant returns (address) {
+        return issuances[issuanceNumber].addressesLicensesCanBeReclaimedFrom[originalOwner][index];
     }
 
     // License transfer
@@ -566,14 +568,14 @@ contract LicenseContract {
     * Determine the number of licenses of a given issuance owned by `owner` 
     * including licenses that may be reclaimed by a different address.
     *
-    * @param issuanceID The issuance for which the number of licenses owned by
-    *                   `owner` shall be determined
+    * @param issuanceNumber The issuance for which the number of licenses owned by
+    *                       `owner` shall be determined
     * @param owner The address for which the balance shall be determined
     * 
     * @return The number of licenses owned by `owner`
     */
-    function balance(uint256 issuanceID, address owner) external constant returns (uint64) {
-        var issuance = issuances[issuanceID];
+    function balance(uint256 issuanceNumber, address owner) external constant returns (uint64) {
+        var issuance = issuances[issuanceNumber];
         return issuance.balance[owner][owner] + issuance.temporaryBalance[owner];
     }
 
@@ -582,21 +584,23 @@ contract LicenseContract {
     * but which may be reclaimed by a different address (i.e. excluding 
     * licenses that are properly owned by `owner`).
     *
-    * @param issuanceID The issuance for which the balance shall be determined
+    * @param issuanceNumber The issuance for which the balance shall be 
+    *                       determined
     * @param owner The address for which the balance shall be determined
     * 
     * @return The number of licenses owned by `owner` but which may be 
     *         reclaimed by someone else
     */
-    function reclaimableBalance(uint256 issuanceID, address owner) external constant returns (uint64) {
-        return issuances[issuanceID].temporaryBalance[owner];
+    function reclaimableBalance(uint256 issuanceNumber, address owner) external constant returns (uint64) {
+        return issuances[issuanceNumber].temporaryBalance[owner];
     }
 
     /**
     * Determine the number of licenses of a given issuance owned by `owner` 
     * but which may be reclaimed by `reclaimer`.
     *
-    * @param issuanceID The issuance for which the balance shall be determined
+    * @param issuanceNumber The issuance for which the balance shall be
+    *                       determined
     * @param owner The address that owns the licenses but from which the 
     *              licenses may be taken from `reclaimer`
     * @param reclaimer The address that is allowed to reclaim licenses from
@@ -605,8 +609,8 @@ contract LicenseContract {
     * @return The number of licenses owned by `owner` but which may be 
     *         reclaimed by `reclaimer`
     */
-    function reclaimableBalanceBy(uint256 issuanceID, address owner, address reclaimer) external constant returns (uint64) {
-        return issuances[issuanceID].balance[owner][reclaimer];
+    function reclaimableBalanceBy(uint256 issuanceNumber, address owner, address reclaimer) external constant returns (uint64) {
+        return issuances[issuanceNumber].balance[owner][reclaimer];
     }
 
     /**
@@ -621,14 +625,14 @@ contract LicenseContract {
     * Upon successful transfer, this fires the `Transfer` event with 
     * `reclaimable` set to `false`.
     *
-    * @param issuanceID The issuance to which the licenses to be transferred 
-    *                   belong
+    * @param issuanceNumber The issuance to which the licenses to be transferred 
+    *                       belong
     * @param to The address the licenses shall be transferred to
     * @param amount The number of licenses that shall be transferred
     */
-    function transfer(uint256 issuanceID, address to, uint64 amount) public {
-        relevantIssuances[to].push(issuanceID);
-        issuances.transferFromMessageSender(issuanceID, to, amount);
+    function transfer(uint256 issuanceNumber, address to, uint64 amount) public {
+        relevantIssuances[to].push(issuanceNumber);
+        issuances.transferFromMessageSender(issuanceNumber, to, amount);
     }
 
     /**
@@ -646,14 +650,14 @@ contract LicenseContract {
     * Upon successful transfer, this fires the `Transfer` event with 
     * `reclaimable` set to `true`.
     *
-    * @param issuanceID The issuance to which the licenses to be transferred 
-    *                   belong
+    * @param issuanceNumber The issuance to which the licenses to be transferred 
+    *                       belong
     * @param to The address the licenses shall be transferred to
     * @param amount The number of licenses that shall be transferred
     */
-    function transferAndAllowReclaim(uint256 issuanceID, address to, uint64 amount) external {
-        relevantIssuances[to].push(issuanceID);
-        issuances.transferFromSenderAndAllowReclaim(issuanceID, to, amount);
+    function transferAndAllowReclaim(uint256 issuanceNumber, address to, uint64 amount) external {
+        relevantIssuances[to].push(issuanceNumber);
+        issuances.transferFromSenderAndAllowReclaim(issuanceNumber, to, amount);
     }
 
     /**
@@ -669,13 +673,13 @@ contract LicenseContract {
     *
     * Upon successful reclaim, the `Reclaim` event is fired.
     *
-    * @param issuanceID The issuance to which the licenses to be reclaimed 
-    *                   belong
+    * @param issuanceNumber The issuance to which the licenses to be reclaimed 
+    *                       belong
     * @param from The address from which licenses shall be reclaimed
     * @param amount The number of licenses that shall be reclaimed
     */
-    function reclaim(uint256 issuanceID, address from, uint64 amount) external {
-        issuances.reclaimToSender(issuanceID, from, amount);
+    function reclaim(uint256 issuanceNumber, address from, uint64 amount) external {
+        issuances.reclaimToSender(issuanceNumber, from, amount);
     }
 
     /**
@@ -684,12 +688,12 @@ contract LicenseContract {
     * issuer or the manager if LOB has taken over control for this license 
     * contract.
     *
-    * @param issuanceID The ID of the issuance that shall be revoked
+    * @param issuanceNumber The issuance that shall be revoked
     */
-    function revoke(uint256 issuanceID) onlyCurrentManager external {
+    function revoke(uint256 issuanceNumber) onlyCurrentManager external {
         require(!disabled);
-        issuances[issuanceID].revoked = true;
-        Revoke(issuanceID);
+        issuances[issuanceNumber].revoked = true;
+        Revoke(issuanceNumber);
     }
 
 

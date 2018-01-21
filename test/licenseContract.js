@@ -11,37 +11,37 @@ Promise.prototype.thenSolidityThrow = function(description) {
   });
 };
 
-Promise.prototype.thenBalance = function(issuanceID, account, balance) {
+Promise.prototype.thenBalance = function(issuanceNumber, account, balance) {
   return this.then(function() {
     return LicenseContract.deployed();
   }).then(function(instance) {
-    return instance.balance(issuanceID, account);
+    return instance.balance(issuanceNumber, account);
   }).then(function(actualBalance) {
     assert.equal(actualBalance.valueOf(), balance)
   })
 };
 
-Promise.prototype.thenReclaimableBalance = function(issuanceID, account, balance) {
+Promise.prototype.thenReclaimableBalance = function(issuanceNumber, account, balance) {
   return this.then(function() {
     return LicenseContract.deployed();
   }).then(function(instance) {
-    return instance.reclaimableBalance(issuanceID, account);
+    return instance.reclaimableBalance(issuanceNumber, account);
   }).then(function(actualBalance) {
     assert.equal(actualBalance.valueOf(), balance)
   });
 };
 
-Promise.prototype.thenReclaimableBalanceBy = function(issuanceID, account, reclaimer, balance) {
+Promise.prototype.thenReclaimableBalanceBy = function(issuanceNumber, account, reclaimer, balance) {
   return this.then(function() {
     return LicenseContract.deployed();
   }).then(function(instance) {
-    return instance.reclaimableBalanceBy(issuanceID, account, reclaimer);
+    return instance.reclaimableBalanceBy(issuanceNumber, account, reclaimer);
   }).then(function(actualBalance) {
     assert.equal(actualBalance.valueOf(), balance)
   });
 };
 
-Promise.prototype.thenRelevantIssuances = function(owner, expectedRelevantIssuanceIDs) {
+Promise.prototype.thenRelevantIssuances = function(owner, expectedRelevantissuanceNumbers) {
   var licenseContract;
   var temp = this;
   
@@ -55,21 +55,21 @@ Promise.prototype.thenRelevantIssuances = function(owner, expectedRelevantIssuan
   temp = temp.then(function() {
     return licenseContract.relevantIssuancesCount(owner);
   }).then(function(count) {
-    assert.equal(count, expectedRelevantIssuanceIDs.length);
+    assert.equal(count, expectedRelevantissuanceNumbers.length);
   });
 
-  for (var i = 0; i < expectedRelevantIssuanceIDs.length; i++) {
+  for (var i = 0; i < expectedRelevantissuanceNumbers.length; i++) {
     var j = i;
     temp = temp.then(function() {
       return licenseContract.relevantIssuances(owner, j);
-    }).then(function(issuanceID) {
-      assert.equal(issuanceID, expectedRelevantIssuanceIDs[j], "relevantIssuances[" + j + "]");
+    }).then(function(issuanceNumber) {
+      assert.equal(issuanceNumber, expectedRelevantissuanceNumbers[j], "relevantIssuances[" + j + "]");
     })
   }
   return temp;
 };
 
-Promise.prototype.thenAddressesLicensesCanBeReclaimedFrom = function(issuanceID, originalOwner, expectedAddressesLicensesCanBeReclaimedFrom) {
+Promise.prototype.thenAddressesLicensesCanBeReclaimedFrom = function(issuanceNumber, originalOwner, expectedAddressesLicensesCanBeReclaimedFrom) {
   var licenseContract;
   var temp = this;
   
@@ -81,7 +81,7 @@ Promise.prototype.thenAddressesLicensesCanBeReclaimedFrom = function(issuanceID,
 
 
   temp = temp.then(function() {
-    return licenseContract.addressesLicensesCanBeReclaimedFromCount(issuanceID, originalOwner);
+    return licenseContract.addressesLicensesCanBeReclaimedFromCount(issuanceNumber, originalOwner);
   }).then(function(count) {
     assert.equal(count, expectedAddressesLicensesCanBeReclaimedFrom.length);
   });
@@ -89,9 +89,9 @@ Promise.prototype.thenAddressesLicensesCanBeReclaimedFrom = function(issuanceID,
   for (var i = 0; i < expectedAddressesLicensesCanBeReclaimedFrom.length; i++) {
     var j = i;
     temp = temp.then(function() {
-      return licenseContract.addressesLicensesCanBeReclaimedFrom(issuanceID, originalOwner, j);
-    }).then(function(issuanceID) {
-      assert.equal(issuanceID, expectedAddressesLicensesCanBeReclaimedFrom[j], "addressesLicensesCanBeReclaimedFrom[" + j + "]");
+      return licenseContract.addressesLicensesCanBeReclaimedFrom(issuanceNumber, originalOwner, j);
+    }).then(function(issuanceNumber) {
+      assert.equal(issuanceNumber, expectedAddressesLicensesCanBeReclaimedFrom[j], "addressesLicensesCanBeReclaimedFrom[" + j + "]");
     })
   }
   return temp;
