@@ -403,6 +403,31 @@ contract LicenseContract {
     }
 
     /**
+     * Build the certificate text by filling custom placeholders into a template
+     * certificate text.
+     *
+     * This is the text that needs to be signed to generate the signature for 
+     * the `sign` method.
+     *
+     * @return The certificate text template with placeholders instantiated by 
+     *         the given parameters
+     */
+    function certificateText() external constant returns (string) {
+        var s = StringUtils.concat(
+            "Wir, ",
+            issuerName,
+            ", erklären hiermit,\n\ndass wir unter dem Ethereum Smart Contract mit der Ethereum-Adresse „",
+            StringUtils.addressToString(this),
+            "“ (nachfolgend „LOB-License-Contract“ genannt) Software-Lizenzbescheinigungen gemäß dem Verfahren der License-On-Blockchain Foundation („LOB-Verfahren“) ausstellen.\nEine detaillierte Spezifikation des Verfahrens kann unter der URL <#TODO#> abgerufen werden. Das Dokument hat den Hash-Wert <#TODO#>.\n\nGemäß diesem LOB-Verfahren unterwerfen wir uns insbesondere folgenden Obliegenheiten:\n- Wir werden Software-Lizenzbescheinigungen nur ausstellen, wenn uns seitens des Lizenzinhabers glaubhaft bestätigt wird, dass (a) über diese Lizenzen nicht zwischenzeitlich anderweitig verfügt und (b) keine weitere Lizenzbestätigung bei einem anderen Auditor, nach welchem Verfahren auch immer, angefordert wurde\n- Wir werden uns von den Empfängern unserer Lizenzbescheinigungen schriftlich und nachweisbar wortwörtlich zusichern lassen: „Ich werde eine Weitergabe der hiermit bescheinigten Lizenz(en) auf dem License Contract durch dafür vorgesehenen Funktionen dokumentieren. Soll die Übertragung außerhalb des LOB-Verfahrens erfolgen, werde ich zuvor die Bescheinigung der Lizenz durch Übertragung der Lizenz an die Pseudo-Adresse ‚0x0000000000000000000000000000000000000000‘ terminieren. Dem Folgeerwerber werde ich eine gleichlautende Obliegenheit unter Verwendung des Wortlauts dieses Absatzes auferlegen.“\n- Wir halten unsere Lizenzbescheinigung auch gegenüber jedem aufrecht, dem eine oder mehrere mit dieser Lizenzbescheinigung bestätigte Lizenzen übertragen werden, sofern (a) diese Übertragung innerhalb dieses LOB-License-Contracts mithilfe der Funktion „transfer“ oder „transferAndAllowReclaim“ dokumentiert wurde und (b) der Empfänger der Transaktion sich ebenfalls der o.g. Obliegenheit zur Dokumentation weiterer Veräußerungen auf der Blockchain unterworfen hat.\n- Im Hinblick auf den abgebenden Lizenzinhaber endet durch eine abgebende Transaktion in jedem Fall die Gültigkeit unserer Bestätigung im Umfang der abgegebenen Lizenz(en).\n\nUns vorgelegte Belege und Kaufnachweise zu den von uns bescheinigten Lizenzen werden bei uns für die Dauer von ");
+        s = StringUtils.concat(
+            s,
+            StringUtils.uintToString(safekeepingPeriod),
+            " Jahren archiviert.\n\n",
+            liability);
+        return s;
+    }
+
+    /**
     * Sign this license contract, verifying that the private key of this 
     * contract is owned by the owner of the private key for 
     * `issuerSSLCertificate` and that the issuer will comply with the LOB rules.
@@ -414,6 +439,11 @@ contract LicenseContract {
     * openssl dgst -sha256 -sign privateKey.key -hex CertificateText.txt
     * 
     * Prior to signing the license contract, licenses cannot be issued.
+    *
+    * It is not verified on the blockchain that the signature is valid or 
+    * well-formed but this should be done in the wallet.
+    *
+    * The signature cannot be overwritten once it is set.
     *
     * @param _signature The signature with which to sign the license contract
     */
@@ -573,8 +603,8 @@ contract LicenseContract {
     * Determine the number of licenses of a given issuance owned by `owner` 
     * including licenses that may be reclaimed by a different address.
     *
-    * @param issuanceNumber The issuance for which the number of licenses owned by
-    *                       `owner` shall be determined
+    * @param issuanceNumber The issuance for which the number of licenses owned 
+    *                       by `owner` shall be determined
     * @param owner The address for which the balance shall be determined
     * 
     * @return The number of licenses owned by `owner`
@@ -619,82 +649,83 @@ contract LicenseContract {
     }
 
     /**
-    * Transfer `amount` licenses of the given issuance from the sender's 
-    * address to `to`. `to` becomes the new proper owner of these licenses.
-    *
-    * This requires that:
-    *  - The sender properly owns at least `amount` licenses of the given 
-    *    issuance
-    *  - The issuance has not been revoked
-    *
-    * Upon successful transfer, this fires the `Transfer` event with 
-    * `reclaimable` set to `false`.
-    *
-    * @param issuanceNumber The issuance to which the licenses to be transferred 
-    *                       belong
-    * @param to The address the licenses shall be transferred to
-    * @param amount The number of licenses that shall be transferred
-    */
+     * Transfer `amount` licenses of the given issuance from the sender's 
+     * address to `to`. `to` becomes the new proper owner of these licenses.
+     *
+     * This requires that:
+     *  - The sender properly owns at least `amount` licenses of the given 
+     *    issuance (transferring temporary balance is not allowed)
+     *  - The issuance has not been revoked
+     *
+     * Upon successful transfer, this fires the `Transfer` event with 
+     * `reclaimable` set to `false`.
+     *
+     * @param issuanceNumber The issuance to which the licenses to be 
+     *                       transferred belong
+     * @param to The address the licenses shall be transferred to
+     * @param amount The number of licenses that shall be transferred
+     */
     function transfer(uint256 issuanceNumber, address to, uint64 amount) public {
         relevantIssuances[to].push(issuanceNumber);
         issuances.transferFromMessageSender(issuanceNumber, to, amount);
     }
 
     /**
-    * Transfer `amount` licenses of the given issuance from the sender's 
-    * address to `to`. `to` becomes a temporary owner of the licenses and the 
-    * sender is allowed to reclaim the licenses at any point. `to` is not 
-    * allowed to transfer these licenses to anyone else.
-    *
-    * This requires that:
-    *  - The sender properly owns at least `amount` licenses of the given 
-    *    issuance
-    *  - The sender is different from `to`
-    *  - The issuance has not been revoked
-    *
-    * Upon successful transfer, this fires the `Transfer` event with 
-    * `reclaimable` set to `true`.
-    *
-    * @param issuanceNumber The issuance to which the licenses to be transferred 
-    *                       belong
-    * @param to The address the licenses shall be transferred to
-    * @param amount The number of licenses that shall be transferred
-    */
+     * Transfer `amount` licenses of the given issuance from the sender's 
+     * address to `to`. `to` becomes the temporary owner of the licenses and the 
+     * sender is allowed to reclaim the licenses at any point. `to` is not 
+     * allowed to transfer these licenses to anyone else.
+     *
+     * This requires that:
+     *  - The sender properly owns at least `amount` licenses of the given 
+     *    issuance
+     *  - The sender is different from `to`
+     *  - The issuance has not been revoked
+     *
+     * Upon successful transfer, this fires the `Transfer` event with 
+     * `reclaimable` set to `true`.
+     *
+     * @param issuanceNumber The issuance to which the licenses to be 
+     *                       transferred belong
+     * @param to The address the licenses shall be transferred to
+     * @param amount The number of licenses that shall be transferred
+     */
     function reclaimableTransfer(uint256 issuanceNumber, address to, uint64 amount) external {
         relevantIssuances[to].push(issuanceNumber);
         issuances.reclaimableTransferFromMessageSender(issuanceNumber, to, amount);
     }
 
     /**
-    * The sender reclaims `amount` licenses it has previously transferred to 
-    * `from` using `reclaimableTransfer`, deducting them from `from`'s temporary
-    * balance and adding them to the sender's proper balance again.
-    *
-    * This requires that:
-    *  - The sender previously transferred at least `amount` licenses to `from`
-    *    with the right to reclaim them
-    *  - The sender is different from `from`
-    *  - The issuance has not been revoked
-    *
-    * Upon successful reclaim, the `Reclaim` event is fired.
-    *
-    * @param issuanceNumber The issuance to which the licenses to be reclaimed 
-    *                       belong
-    * @param from The address from which licenses shall be reclaimed
-    * @param amount The number of licenses that shall be reclaimed
-    */
+     * The sender reclaims `amount` licenses it has previously temporarily 
+     * transferred to `from` using `reclaimableTransfer`, deducting them from 
+     * `from`'s temporary balance and adding them to the sender's proper balance 
+     * again.
+     *
+     * This requires that:
+     *  - The sender previously transferred at least `amount` licenses to `from`
+     *    with the right to reclaim them
+     *  - The sender is different from `from`
+     *  - The issuance has not been revoked
+     *
+     * Upon successful reclaim, the `Reclaim` event is fired.
+     *
+     * @param issuanceNumber The issuance to which the licenses to be reclaimed 
+     *                       belong
+     * @param from The address from which licenses shall be reclaimed
+     * @param amount The number of licenses that shall be reclaimed
+     */
     function reclaim(uint256 issuanceNumber, address from, uint64 amount) external {
         issuances.reclaimToSender(issuanceNumber, from, amount);
     }
 
     /**
-    * Revoke the given issuance, disallowing any further license transfers or
-    * reclaims. This action cannot be undone and can only be  performed by the 
-    * issuer or the manager if LOB has taken over control for this license 
-    * contract.
-    *
-    * @param issuanceNumber The issuance that shall be revoked
-    */
+     * Revoke the given issuance, disallowing any further license transfers 
+     * (including temporary transfers) or reclaims. This action cannot be undone 
+     * and can only be  performed by the issuer or the manager if LOB has taken 
+     * over control for this license contract.
+     *
+     * @param issuanceNumber The issuance that shall be revoked
+     */
     function revoke(uint256 issuanceNumber) onlyCurrentManager external {
         require(!disabled);
         issuances[issuanceNumber].revoked = true;
@@ -706,11 +737,11 @@ contract LicenseContract {
     // Management interface
 
     /**
-    * Set the fee required for every license issuance to a new amount. This can 
-    * only be done by the LOB root.
-    *
-    * @param newFee The new issuance fee in Wei
-    */
+     * Set the fee required for every license issuance to a new amount. This can 
+     * only be done by the LOB root.
+     *
+     * @param newFee The new issuance fee in Wei
+     */
     function setIssuanceFee(uint128 newFee) onlyLOBRoot external {
         issuanceFee = newFee;
         IssuanceFeeChange(newFee);
@@ -721,18 +752,18 @@ contract LicenseContract {
     * to the address `recipient`. This can only be initiated by the LOB root.
     *
     * @param amount The amount that shall be withdrawn in Wei
-    * @param recipient The address that shall receive the withdrawal
+    * @param recipient The address that shall receive the withdrawn Ether
     */
     function withdraw(uint256 amount, address recipient) onlyLOBRoot external {
         recipient.transfer(amount);
     }
 
     /**
-    * Disable the license contract, disallowing any further license issuances 
-    * and license revocations while still allowing licenses to be transferred. 
-    * This action cannot be undone. It can only be performed by the issuer or 
-    * the manager if LOB has taken over control for this license contract.
-    */
+     * Disable the license contract, disallowing any further license issuances 
+     * and license revocations while still allowing licenses to be transferred. 
+     * This action cannot be undone. It can only be performed by the issuer or 
+     * the manager if LOB has taken over control for this license contract.
+     */
     function disable() onlyCurrentManager external {
         Disabling();
         disabled = true;
@@ -742,9 +773,9 @@ contract LicenseContract {
      * This allows the LOB root to take over managment for this license contract
      * to fix any mistakes or clean the contract up in case the issuer has lost
      * access to his address. It will set the contract into a special managment
-     * mode that disallows any managment action by the issuer and grants all
-     * the managment address the right to revoke issuances and disable the 
-     * license contract.
+     * mode that disallows any managment action by the issuer and grants the
+     * managment address the right to revoke issuances and disable the license
+     * contract.
      *
      * Setting the manager address back to `0x0` gives control back to the 
      * issuer.
@@ -757,27 +788,5 @@ contract LicenseContract {
     function takeOverManagementControl(address _managerAddress) onlyLOBRoot external {
         managerAddress = _managerAddress;
         ManagementControlTakeOver(_managerAddress);
-    }
-
-    /**
-     * Build the certificate text by filling custom placeholders into a template
-     * certificate text.
-     *
-     * @return The certificate text template with placeholders instantiated by 
-     *         the given parameters
-     */
-    function certificateText() external constant returns (string) {
-        var s = StringUtils.concat(
-            "Wir, ",
-            issuerName,
-            ", erklären hiermit,\n\ndass wir unter dem Ethereum Smart Contract mit der Ethereum-Adresse „",
-            StringUtils.addressToString(this),
-            "“ (nachfolgend „LOB-License-Contract“ genannt) Software-Lizenzbescheinigungen gemäß dem Verfahren der License-On-Blockchain Foundation („LOB-Verfahren“) ausstellen.\nEine detaillierte Spezifikation des Verfahrens kann unter der URL <#TODO#> abgerufen werden. Das Dokument hat den Hash-Wert <#TODO#>.\n\nGemäß diesem LOB-Verfahren unterwerfen wir uns insbesondere folgenden Obliegenheiten:\n- Wir werden Software-Lizenzbescheinigungen nur ausstellen, wenn uns seitens des Lizenzinhabers glaubhaft bestätigt wird, dass (a) über diese Lizenzen nicht zwischenzeitlich anderweitig verfügt und (b) keine weitere Lizenzbestätigung bei einem anderen Auditor, nach welchem Verfahren auch immer, angefordert wurde\n- Wir werden uns von den Empfängern unserer Lizenzbescheinigungen schriftlich und nachweisbar wortwörtlich zusichern lassen: „Ich werde eine Weitergabe der hiermit bescheinigten Lizenz(en) auf dem License Contract durch dafür vorgesehenen Funktionen dokumentieren. Soll die Übertragung außerhalb des LOB-Verfahrens erfolgen, werde ich zuvor die Bescheinigung der Lizenz durch Übertragung der Lizenz an die Pseudo-Adresse ‚0x0000000000000000000000000000000000000000‘ terminieren. Dem Folgeerwerber werde ich eine gleichlautende Obliegenheit unter Verwendung des Wortlauts dieses Absatzes auferlegen.“\n- Wir halten unsere Lizenzbescheinigung auch gegenüber jedem aufrecht, dem eine oder mehrere mit dieser Lizenzbescheinigung bestätigte Lizenzen übertragen werden, sofern (a) diese Übertragung innerhalb dieses LOB-License-Contracts mithilfe der Funktion „transfer“ oder „transferAndAllowReclaim“ dokumentiert wurde und (b) der Empfänger der Transaktion sich ebenfalls der o.g. Obliegenheit zur Dokumentation weiterer Veräußerungen auf der Blockchain unterworfen hat.\n- Im Hinblick auf den abgebenden Lizenzinhaber endet durch eine abgebende Transaktion in jedem Fall die Gültigkeit unserer Bestätigung im Umfang der abgegebenen Lizenz(en).\n\nUns vorgelegte Belege und Kaufnachweise zu den von uns bescheinigten Lizenzen werden bei uns für die Dauer von ");
-        s = StringUtils.concat(
-            s,
-            StringUtils.uintToString(safekeepingPeriod),
-            " Jahren archiviert.\n\n",
-            liability);
-        return s;
     }
 }
