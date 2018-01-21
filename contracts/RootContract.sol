@@ -63,6 +63,9 @@ contract RootContract {
 
     // Constructor
 
+    /**
+     * Creates a new root contract whose owner is set to the message sender.
+     */
     function RootContract() public {
         owner = msg.sender;
     }
@@ -88,9 +91,9 @@ contract RootContract {
      * @param safekeepingPeriod The amount of years all documents having to do 
      *                          with the audit will be kept by the issuer
      * @param issuerSSLCertificate The SSL certificate that will be used to sign 
-     *                             the license contract. See the license contract's
-     *                             documentation on the requirements of this 
-     *                             certificate
+     *                             the license contract. See the license 
+     *                             contract's documentation on the requirements 
+     *                             of this certificate
      */
     function createLicenseContract(string issuerName, string liability, uint8 safekeepingPeriod, bytes issuerSSLCertificate) external notDisabled returns (address) {
         var licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee);
@@ -110,8 +113,6 @@ contract RootContract {
     function licenseContractCount() external constant returns (uint256) {
         return licenseContracts.length;
     }
-
-    // Constructing the certificate text
     
     // Managing fees
 
@@ -123,8 +124,8 @@ contract RootContract {
      *
      * @param licenseContractAddress The address of the license contract for 
      *                               which the issuance fee shall be changed
-     * @param newFee The new fee that shall be required for every issuance of 
-     *               this license contract
+     * @param newFee The new fee that shall be required for every license 
+     *               issuance done through this license contract
      */
     function setLicenseContractIssuanceFee(address licenseContractAddress, uint128 newFee) external onlyOwner {
         LicenseContract(licenseContractAddress).setIssuanceFee(newFee);
@@ -155,7 +156,8 @@ contract RootContract {
      * @param licenseContractAddress The address of the license contract from 
      *                               which collected fees shall be withdrawn
      * @param amount The amount of Wei that shall be withdrawn from the license 
-     *               contract
+     *               contract. Needs to be lower than the amount of fees 
+     *               collected by the license contract
      * @param recipient The address to which the withdrawn Wei should be sent
      */
     function withdrawFromLicenseContract(address licenseContractAddress, uint256 amount, address recipient) external onlyOwner {
