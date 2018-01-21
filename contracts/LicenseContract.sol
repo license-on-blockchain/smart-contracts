@@ -237,11 +237,12 @@ contract LicenseContract {
      * The fees are collected in the contract and may be withdrawn by the LOB 
      * root.
      */
-    uint128 public fee;
+    uint128 public issuanceFee;
 
     /**
-     * The LOB root address that is allowed to set the fee, withdraw fees and 
-     * disable this license contract. Equal to the creator of this contract
+     * The LOB root address that is allowed to set the issuance fee, withdraw 
+     * fees and take over control for this license contract. 
+     * Equal to the creator of this contract.
      */
     address public lobRoot;
 
@@ -332,12 +333,12 @@ contract LicenseContract {
     event Revoke(uint256 issuanceNumber);
 
     /**
-     * Fired when the fee required to issue new licenses changes. Fired 
-     * with the default fee from the constructor of this contract.
+     * Fired when the issuance fee required to issue new licenses changes. Fired 
+     * with the default issuance fee from the constructor of this contract.
      *
      * @param newFee The new fee that is required every time licenses are issued
      */
-    event FeeChange(uint128 newFee);
+    event IssuanceFeeChange(uint128 newFee);
 
     /**
      * Fired when the smart contract gets signed.
@@ -378,8 +379,8 @@ contract LicenseContract {
      *                              inforamtion.
      * @param _safekeepingPeriod The amount of years all documents having to do 
      *                           with the audit will be kept by the issuer
-     * @param _fee The fee that is taken for each license issuance in wei. May 
-     *             be changed later.
+     * @param _issuanceFee The fee that is required to be paid for each license 
+     *                     issuance. In Wei. May be changed later.
      */
     function LicenseContract(
         address _issuer, 
@@ -387,7 +388,7 @@ contract LicenseContract {
         string _liability,
         bytes _issuerSSLCertificate,
         uint8 _safekeepingPeriod,
-        uint128 _fee
+        uint128 _issuanceFee
     ) public {
         issuer = _issuer;
         issuerName = _issuerName;
@@ -397,8 +398,8 @@ contract LicenseContract {
         
         lobRoot = msg.sender;
 
-        fee = _fee;
-        FeeChange(_fee);
+        issuanceFee = _issuanceFee;
+        IssuanceFeeChange(_issuanceFee);
     }
 
     /**
@@ -430,7 +431,7 @@ contract LicenseContract {
     /**
     * Issue new LOB licenses. The following conditions must be satisfied for 
     * this function to succeed:
-    *  - The fee must be transmitted together with this message
+    *  - The issuance fee must be transmitted together with this message
     *  - The function must be called by the issuer
     *  - The license contract must not be disabled
     *  - The license contract needs to be signed
@@ -475,7 +476,7 @@ contract LicenseContract {
         // The license contract hasn't be initialised completely if it has not 
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
-        require(msg.value >= fee);
+        require(msg.value >= issuanceFee);
         var issuanceNumber = issuances.insert(description, code, initialOwnerName, auditTime, auditRemark);
         relevantIssuances[initialOwnerAddress].push(issuanceNumber);
         return issuances.createInitialLicenses(issuanceNumber, numLicenses, initialOwnerAddress);
@@ -708,11 +709,11 @@ contract LicenseContract {
     * Set the fee required for every license issuance to a new amount. This can 
     * only be done by the LOB root.
     *
-    * @param newFee The new fee in Wei
+    * @param newFee The new issuance fee in Wei
     */
-    function setFee(uint128 newFee) onlyLOBRoot external {
-        fee = newFee;
-        FeeChange(newFee);
+    function setIssuanceFee(uint128 newFee) onlyLOBRoot external {
+        issuanceFee = newFee;
+        IssuanceFeeChange(newFee);
     }
 
     /**

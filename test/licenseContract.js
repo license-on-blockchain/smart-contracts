@@ -161,11 +161,11 @@ contract("LicenseContract constructor", function(accounts) {
     });
   });
 
-  it("should set the fee", function() {
+  it("should set the issuance fee", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.fee();
-    }).then(function(fee) {
-      assert.equal(fee.valueOf(), 500/*wei*/);
+      return instance.issuanceFee();
+    }).then(function(issuanceFee) {
+      assert.equal(issuanceFee.valueOf(), 500/*wei*/);
     });
   });
 
@@ -257,13 +257,13 @@ contract("License issuing", function(accounts) {
     }).thenSolidityThrow();
   });
 
-  it("cannot be performed if fee is not transmitted", function() {
+  it("cannot be performed if the issuance fee is not transmitted", function() {
     return LicenseContract.deployed().then(function(instance) {
       return instance.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 10});
     }).thenSolidityThrow();
   });
 
-  it("works if called by the issuer and exactly the right fee is transmitted", function() {
+  it("works if called by the issuer and exactly the right issuance fee is transmitted", function() {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
@@ -692,26 +692,26 @@ contract("Disabling the license contract", function(accounts) {
   });
 });
 
-contract("Setting the fee", function(accounts) {
+contract("Setting the issuance fee", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
   it("can be performed by the LOB root", function() {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.setFee(700, {from: accounts.lobRoot});
+      return licenseContract.setIssuanceFee(700, {from: accounts.lobRoot});
     })
     .then(function() {
-      return licenseContract.fee();
+      return licenseContract.issuanceFee();
     })
-    .then(function(fee) {
-      assert.equal(fee.valueOf(), fee);
+    .then(function(issuanceFee) {
+      assert.equal(issuanceFee.valueOf(), 700);
     });
   });
 
   it("cannot be done by anyone but the LOB root", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.setFee(700, {from: accounts.issuer});
+      return instance.setIssuanceFee(700, {from: accounts.issuer});
     })
     .thenSolidityThrow();
   });

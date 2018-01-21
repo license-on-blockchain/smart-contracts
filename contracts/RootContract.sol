@@ -35,10 +35,11 @@ contract RootContract {
     bool public disabled;
 
     /**
-     * The fee that will be set on each newly created license contract and which
-     * will need to be paid for every issuance on the license contract. In Wei.
+     * The issuance fee that will be set on each newly created license contract 
+     * and which will need to be paid for every issuance on the license 
+     * contract. In Wei.
      */
-    uint128 public defaultFee;
+    uint128 public defaultIssuanceFee;
 
     /** 
      * The addresses of all license contracts created by this root contract.
@@ -92,7 +93,7 @@ contract RootContract {
      *                             certificate
      */
     function createLicenseContract(string issuerName, string liability, uint8 safekeepingPeriod, bytes issuerSSLCertificate) external notDisabled returns (address) {
-        var licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, issuerSSLCertificate, safekeepingPeriod, defaultFee);
+        var licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, issuerSSLCertificate, safekeepingPeriod, defaultIssuanceFee);
         licenseContracts.push(licenseContractAddress);
         LicenseContractCreation(licenseContractAddress);
         return licenseContractAddress;
@@ -115,31 +116,32 @@ contract RootContract {
     // Managing fees
 
     /**
-     * Set the fee of a license contract. See documentation of 
-     * `LicenseContract.setFee` for detailed information.
+     * Set the issuance fee of a license contract. See documentation of 
+     * `LicenseContract.setIssuanceFee` for detailed information.
      *
      * This can only be invoked by the root contract's owner.
      *
      * @param licenseContractAddress The address of the license contract for 
-     *                               which the fee shall be changed
+     *                               which the issuance fee shall be changed
      * @param newFee The new fee that shall be required for every issuance of 
      *               this license contract
      */
-    function setLicenseContractFee(address licenseContractAddress, uint128 newFee) external onlyOwner {
-        LicenseContract(licenseContractAddress).setFee(newFee);
+    function setLicenseContractIssuanceFee(address licenseContractAddress, uint128 newFee) external onlyOwner {
+        LicenseContract(licenseContractAddress).setIssuanceFee(newFee);
     }
 
     /**
-     * Set the fee that is set on every newly created license contract and which 
-     * is thus required for every issuance made by that license contract.
+     * Set the issuance fee that is set on every newly created license contract 
+     * and which is thus required for every issuance made by that license 
+     * contract.
      *
      * This can only be invoked by the root contract's owner.
      *
-     * @param newDefaultFee The new default fee that shall be set on every newly 
-     *                      created license contract
+     * @param newDefaultFee The new default issuance fee that shall be set on 
+     *                      every newly created license contract
      */
-    function setDefaultFee(uint128 newDefaultFee) external onlyOwner {
-        defaultFee = newDefaultFee;
+    function setDefaultIssuanceFee(uint128 newDefaultFee) external onlyOwner {
+        defaultIssuanceFee = newDefaultFee;
     }
 
     // Managing license contracts

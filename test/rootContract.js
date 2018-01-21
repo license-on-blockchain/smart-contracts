@@ -32,21 +32,21 @@ contract("Root contract constructor", function(accounts) {
   })
 });
 
-contract("Root contract default fee", function(accounts) {
+contract("Root contract default issuance fee", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
   it("is initially set to 0", function() {
     return RootContract.deployed().then(function(rootContract) {
-      return rootContract.defaultFee();
+      return rootContract.defaultIssuanceFee();
     })
-    .then(function(defaultFee) {
-      assert.equal(defaultFee.valueOf(), 0);
+    .then(function(defaultIssuanceFee) {
+      assert.equal(defaultIssuanceFee.valueOf(), 0);
     });
   });
 
   it("cannot be changed from any address but the owner", function() {
     return RootContract.deployed().then(function(rootContract) {
-      return rootContract.setDefaultFee(500, {from:accounts.firstOwner});
+      return rootContract.setDefaultIssuanceFee(500, {from:accounts.firstOwner});
     })
     .thenSolidityThrow();
   });
@@ -55,13 +55,13 @@ contract("Root contract default fee", function(accounts) {
     var rootContract;
     return RootContract.deployed().then(function(instance) {
       rootContract = instance;
-      return rootContract.setDefaultFee(800, {from: accounts.lobRootOwner});
+      return rootContract.setDefaultIssuanceFee(800, {from: accounts.lobRootOwner});
     })
     .then(function() {
-      return rootContract.defaultFee();
+      return rootContract.defaultIssuanceFee();
     })
-    .then(function(defaultFee) {
-      assert.equal(defaultFee.valueOf(), 800);
+    .then(function(defaultIssuanceFee) {
+      assert.equal(defaultIssuanceFee.valueOf(), 800);
     });
   });
 });
@@ -154,7 +154,7 @@ contract("Withdrawal from license contracts", function(accounts) {
   });
 });
 
-contract("Setting a license contract's fee", function(accounts) {
+contract("Setting a license contract's issuance fee", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
   var rootContract;
@@ -175,17 +175,17 @@ contract("Setting a license contract's fee", function(accounts) {
   });
 
   it("cannot be done by anyone but the root contract owner", function() {
-    return rootContract.setLicenseContractFee(licenseContract.address, 50, {from: accounts.firstOwner})
+    return rootContract.setLicenseContractIssuanceFee(licenseContract.address, 50, {from: accounts.firstOwner})
     .thenSolidityThrow();
   });
 
   it("can be done by the root contract owner", function() {
-    return rootContract.setLicenseContractFee(licenseContract.address, 50, {from: accounts.lobRootOwner})
+    return rootContract.setLicenseContractIssuanceFee(licenseContract.address, 50, {from: accounts.lobRootOwner})
     .then(function() {
-      return licenseContract.fee();
+      return licenseContract.issuanceFee();
     })
-    .then(function(fee) {
-      assert.equal(fee.valueOf(), 50);
+    .then(function(issuanceFee) {
+      assert.equal(issuanceFee.valueOf(), 50);
     })
   });
 });
@@ -224,7 +224,7 @@ contract("Creating a new license contract", function(accounts) {
   before(function() {
     return RootContract.deployed().then(function(instance) {
       rootContract = instance;
-      return rootContract.setDefaultFee(950, {from: accounts.lobRootOwner});
+      return rootContract.setDefaultIssuanceFee(950, {from: accounts.lobRootOwner});
     }).then(function() {
       return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
@@ -268,10 +268,10 @@ contract("Creating a new license contract", function(accounts) {
     });
   });
 
-  it("has the default fee set as fee", function() {
-    return licenseContract.fee()
-    .then(function(fee) {
-      assert.equal(fee.valueOf(), 950);
+  it("has the default issuance fee set as issuance fee", function() {
+    return licenseContract.issuanceFee()
+    .then(function(issuanceFee) {
+      assert.equal(issuanceFee.valueOf(), 950);
     });
   });
 
