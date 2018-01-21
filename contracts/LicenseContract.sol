@@ -139,7 +139,7 @@ library LicenseContractLib {
         Transfer(issuanceNumber, /*from*/msg.sender, to, amount, /*reclaimable*/false);
     }
 
-    function transferFromSenderAndAllowReclaim(Issuance[] storage issuances, uint256 issuanceNumber, address to, uint64 amount) internal {
+    function reclaimableTransferFromMessageSender(Issuance[] storage issuances, uint256 issuanceNumber, address to, uint64 amount) internal {
         var issuance = issuances[issuanceNumber];
         require(!issuance.revoked);
         require(issuance.balance[msg.sender][msg.sender] >= amount);
@@ -655,15 +655,15 @@ contract LicenseContract {
     * @param to The address the licenses shall be transferred to
     * @param amount The number of licenses that shall be transferred
     */
-    function transferAndAllowReclaim(uint256 issuanceNumber, address to, uint64 amount) external {
+    function reclaimableTransfer(uint256 issuanceNumber, address to, uint64 amount) external {
         relevantIssuances[to].push(issuanceNumber);
-        issuances.transferFromSenderAndAllowReclaim(issuanceNumber, to, amount);
+        issuances.reclaimableTransferFromMessageSender(issuanceNumber, to, amount);
     }
 
     /**
     * The sender reclaims `amount` licenses it has previously transferred to 
-    * `from` using `transferAndAllowReclaim`, deducting them from `from`'s 
-    * reclaimable balance and adding them to the sender's proper balance again.
+    * `from` using `reclaimableTransfer`, deducting them from `from`'s temporary
+    * balance and adding them to the sender's proper balance again.
     *
     * This requires that:
     *  - The sender previously transferred at least `amount` licenses to `from`
