@@ -461,10 +461,10 @@ contract LicenseContract {
         string description,
         string code,
         string initialOwnerName,
+        address initialOwnerAddress,
         uint64 numLicenses,
         string auditRemark,
-        uint32 auditTime,
-        address initialOwnerAddress
+        uint32 auditTime
     )
         external
         onlyIssuer

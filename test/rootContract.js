@@ -131,7 +131,7 @@ contract("Withdrawal from license contracts", function(accounts) {
       return licenseContract.sign("0x50", {from: accounts.issuer});
     })
     .then(function() {
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", 70, "Remark", 1509552789, accounts.firstOwner, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     })
   });
 
