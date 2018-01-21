@@ -206,11 +206,17 @@ contract("Root contract disabling", function(accounts) {
     .thenSolidityThrow();
   });
 
-  it("can be done by anyone but the root contract owner", function() {
+  it("can be done by the root contract owner", function() {
     return rootContract.disable({from: accounts.lobRootOwner})
     .then(function(transaction) {
-      var disabledLogs = transaction.logs.filter(function(obj) { return obj.event == "Disabled"; });
+      var disabledLogs = transaction.logs.filter(function(obj) { return obj.event == "Disabling"; });
       assert.equal(disabledLogs.length, 1);
+    })
+    .then(function() {
+      return rootContract.disabled();
+    })
+    .then(function(disabled) {
+      assert.equal(disabled, true);
     })
   });
 });

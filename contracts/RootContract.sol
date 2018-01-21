@@ -59,7 +59,7 @@ contract RootContract {
     /**
      * Fired when the root contract gets disabled.
      */
-    event Disabled();
+    event Disabling();
 
     // Constructor
 
@@ -181,12 +181,12 @@ contract RootContract {
      *
      * This action cannot be undone.
      *
-     * Upon successful execution, the `Disabled` event is fired.
+     * Upon successful execution, the `Disabling` event is fired.
      *
      * This can only be invoked by the root contract's owner.
      */
     function disable() external onlyOwner {
         disabled = true;
-        Disabled();
+        Disabling();
     }
 }
