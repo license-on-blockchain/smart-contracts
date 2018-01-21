@@ -24,7 +24,7 @@ library LicenseContractLib {
          * The name of the person or organisation to whom the licenses were 
          * originally issued
          */
-        string originalOwner;
+        string initialOwnerName;
         
         /**
          * The number of licenses originally issued in this issuance. 
@@ -108,21 +108,21 @@ library LicenseContractLib {
      * technical limitations, this does not set original supply or initalises
      * the balances mapping.
      */
-    function insert(Issuance[] storage issuances, string description, string code, string originalOwner, uint32 auditTime, string auditRemark) public returns (uint256) {
-        return issuances.push(Issuance(description, code, originalOwner, 0, auditTime, auditRemark, /*revoked*/false)) - 1;
+    function insert(Issuance[] storage issuances, string description, string code, string initialOwnerName, uint32 auditTime, string auditRemark) public returns (uint256) {
+        return issuances.push(Issuance(description, code, initialOwnerName, 0, auditTime, auditRemark, /*revoked*/false)) - 1;
     }
 
     /**
      * Assign the originalSupply member of the issuance with the given ID and
-     * assign initialOwner all initial licenses. This also emits all 
+     * assign `initialOwnerAddress` all initial licenses. This also emits all 
      * corresponding events.
      */
-    function createInitialLicenses(Issuance[] storage issuances, uint256 issuanceID, uint64 originalSupply, address initialOwner) public returns (uint256) {
+    function createInitialLicenses(Issuance[] storage issuances, uint256 issuanceID, uint64 originalSupply, address initialOwnerAddress) public returns (uint256) {
         var issuance = issuances[issuanceID];
         issuance.originalSupply = originalSupply;
-        issuances[issuanceID].balance[initialOwner][initialOwner] = originalSupply;
+        issuances[issuanceID].balance[initialOwnerAddress][initialOwnerAddress] = originalSupply;
         Issuing(issuanceID);
-        Transfer(issuanceID, 0x0, initialOwner, originalSupply, false);
+        Transfer(issuanceID, 0x0, initialOwnerAddress, originalSupply, false);
         return issuanceID;
     }
 
@@ -436,25 +436,26 @@ contract LicenseContract {
     * 
     * @param description A human-readable description of the license type
     * @param code An unambiguous code for the license type
-    * @param originalOwner The name of the person or organisation to whom the
-    *                      licenses shall be issued and who may transfer them 
-    *                      on
+    * @param initialOwnerName The name of the person or organisation to whom the
+    *                         licenses shall be issued and who may transfer them 
+    *                         on
     * @param numLicenses The number of separately tradable licenses to be issued
     * @param auditRemark A free text field containing the result of the license 
     *                    audit
     * @param auditTime The time at which the audit was performed
-    * @param initialOwner The address that shall initially own all the licenses
+    * @param initialOwnerAddress The address that shall initially own all the 
+    *                            licenses
     *
     * @return The ID of the newly created issuance
     */
     function issueLicense(
         string description,
         string code,
-        string originalOwner,
+        string initialOwnerName,
         uint64 numLicenses,
         string auditRemark,
         uint32 auditTime,
-        address initialOwner
+        address initialOwnerAddress
     )
         external
         onlyIssuer
@@ -467,9 +468,9 @@ contract LicenseContract {
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
         require(msg.value >= fee);
-        var issuanceID = issuances.insert(description, code, originalOwner, auditTime, auditRemark);
-        relevantIssuances[initialOwner].push(issuanceID);
-        return issuances.createInitialLicenses(issuanceID, numLicenses, initialOwner);
+        var issuanceID = issuances.insert(description, code, initialOwnerName, auditTime, auditRemark);
+        relevantIssuances[initialOwnerAddress].push(issuanceID);
+        return issuances.createInitialLicenses(issuanceID, numLicenses, initialOwnerAddress);
     }
 
 
