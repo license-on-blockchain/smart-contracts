@@ -36,7 +36,7 @@ library LicenseContractLib {
         /**
          * The date at which the audit was performed.
          *
-         * Unix timestamp (seconds since 01/01/1970 +0000)
+         * Unix timestamp (seconds since 01/01/1970 00:00 +0000)
          */
         uint32 auditTime;
 
@@ -109,7 +109,9 @@ library LicenseContractLib {
      * the balances mapping.
      */
     function insert(Issuance[] storage issuances, string description, string code, string initialOwnerName, uint32 auditTime, string auditRemark) public returns (uint256) {
-        return issuances.push(Issuance(description, code, initialOwnerName, 0, auditTime, auditRemark, /*revoked*/false)) - 1;
+        // Passing originalSupply would exceed the number of allowed parameters
+        // it is thus set in `createInitialLicenses`.
+        return issuances.push(Issuance(description, code, initialOwnerName, /*originalSupply*/0, auditTime, auditRemark, /*revoked*/false)) - 1;
     }
 
     /**
