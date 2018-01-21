@@ -112,7 +112,7 @@ class Issuance {
     this.auditRemark = array[5];
     this.revoked = array[6];
     this.balance = array[7];
-    this.reclaimableBalanceCache = array[8];
+    this.temporaryBalance = array[8];
   }
 }
 

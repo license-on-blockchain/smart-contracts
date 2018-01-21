@@ -71,14 +71,14 @@ library LicenseContractLib {
          * A cached value to speed up the calculation of the total number of 
          * licenses currently owned by an address.
          *
-         * `reclaimableBalanceCache[x] = sum_{y, y != x} (balance[x][y])`, i.e.
-         * `reclaimableBalanceCache` manages the number of licenses currently 
+         * `temporaryBalance[x] = sum_{y, y != x} (balance[x][y])`, i.e.
+         * `temporaryBalance` manages the number of licenses currently 
          * owned by `x` that may be reclaimed by someone else.
          *
          * The total number of licenses owned by an address `x` is thus
-         * `reclaimableBalanceCache[x] + balance[x][x]`.
+         * `temporaryBalance[x] + balance[x][x]`.
          */
-        mapping (address => uint64) reclaimableBalanceCache;
+        mapping (address => uint64) temporaryBalance;
 
         /**
          * A list of addresses to which licenses have been transferred with the
@@ -145,7 +145,7 @@ library LicenseContractLib {
 
         issuance.balance[msg.sender][msg.sender] -= amount;
         issuance.balance[to][msg.sender] += amount;
-        issuance.reclaimableBalanceCache[to] += amount;
+        issuance.temporaryBalance[to] += amount;
         issuance.addressesLicensesCanBeReclaimedFrom[msg.sender].push(to);
 
         Transfer(issuanceID, /*from*/msg.sender, to, amount, /*reclaimable*/true);
@@ -159,7 +159,7 @@ library LicenseContractLib {
         
         issuance.balance[from][msg.sender] -= amount;
         issuance.balance[msg.sender][msg.sender] += amount;
-        issuance.reclaimableBalanceCache[from] -= amount;
+        issuance.temporaryBalance[from] -= amount;
 
         Reclaim(issuanceID, from, /*to*/msg.sender, amount);
     }
@@ -572,7 +572,7 @@ contract LicenseContract {
     */
     function balance(uint256 issuanceID, address owner) external constant returns (uint64) {
         var issuance = issuances[issuanceID];
-        return issuance.balance[owner][owner] + issuance.reclaimableBalanceCache[owner];
+        return issuance.balance[owner][owner] + issuance.temporaryBalance[owner];
     }
 
     /**
@@ -587,7 +587,7 @@ contract LicenseContract {
     *         reclaimed by someone else
     */
     function reclaimableBalance(uint256 issuanceID, address owner) external constant returns (uint64) {
-        return issuances[issuanceID].reclaimableBalanceCache[owner];
+        return issuances[issuanceID].temporaryBalance[owner];
     }
 
     /**
