@@ -6,6 +6,6 @@ module.exports = function(deployer, network, accounts) {
   accounts = require("../accounts.js")(accounts);
   deployer.deploy(LicenseContractLib);
   deployer.link(LicenseContractLib, [LicenseContract, RootContract]);
-  deployer.deploy(LicenseContract, accounts.issuer, "Soft&Cloud", "We are not liable for anything!", '0x0ce8', 10, 500/*wei*/, {from: accounts.lobRoot});
+  deployer.deploy(LicenseContract, accounts.issuer, "Soft&Cloud", "We are not liable for anything!", 10, '0x0ce8', 500/*wei*/, {from: accounts.lobRoot});
   deployer.deploy(RootContract, {from: accounts.lobRootOwner});
 };

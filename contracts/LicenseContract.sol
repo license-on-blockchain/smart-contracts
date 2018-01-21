@@ -372,13 +372,13 @@ contract LicenseContract {
      *                    instance variable `issuerName` for more inforamtion.
      * @param _liability  The liability that shall be substitute into the
      *                    liability placeholder of the certificate text
+     * @param _safekeepingPeriod The amount of years all documents having to do 
+     *                           with the audit will be kept by the issuer
      * @param _issuerSSLCertificate An SSL certificate created for the person or 
      *                              organisation that will issue licenses via 
      *                              this contract. See documentation of instance 
      *                              variable `issuerSSLCertificate` for more 
      *                              inforamtion.
-     * @param _safekeepingPeriod The amount of years all documents having to do 
-     *                           with the audit will be kept by the issuer
      * @param _issuanceFee The fee that is required to be paid for each license 
      *                     issuance. In Wei. May be changed later.
      */
@@ -386,8 +386,8 @@ contract LicenseContract {
         address _issuer, 
         string _issuerName, 
         string _liability,
-        bytes _issuerSSLCertificate,
         uint8 _safekeepingPeriod,
+        bytes _issuerSSLCertificate,
         uint128 _issuanceFee
     ) public {
         issuer = _issuer;

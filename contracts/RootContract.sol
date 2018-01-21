@@ -93,7 +93,7 @@ contract RootContract {
      *                             certificate
      */
     function createLicenseContract(string issuerName, string liability, uint8 safekeepingPeriod, bytes issuerSSLCertificate) external notDisabled returns (address) {
-        var licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, issuerSSLCertificate, safekeepingPeriod, defaultIssuanceFee);
+        var licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee);
         licenseContracts.push(licenseContractAddress);
         LicenseContractCreation(licenseContractAddress);
         return licenseContractAddress;
