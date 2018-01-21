@@ -234,8 +234,8 @@ contract LicenseContract {
 
     /**
      * The fee in wei that is required to be payed for every license issuance. 
-     * The fees are collected in the contract and may be withdrawn by the LOB 
-     * root.
+     * The fees are collected in the license contract and may be withdrawn by 
+     * the LOB root.
      */
     uint128 public issuanceFee;
 
@@ -316,7 +316,7 @@ contract LicenseContract {
 
     /**
      * Fired every time an address reclaims licenses that were previously 
-     * transferred with the right to be reclaimed.
+     * transferred temporarily.
      *
      * @param issuanceNumber The issuance to which the reclaimed licenses belong
      * @param from The address to whom the licenses were previously transferred
@@ -369,16 +369,15 @@ contract LicenseContract {
      *                this contract
      * @param _issuerName The name of the person or organisation that will issue
      *                    licenses via this contract. See documentation of 
-     *                    instance variable `issuerName` for more inforamtion.
-     * @param _liability  The liability that shall be substitute into the
-     *                    liability placeholder of the certificate text
-     * @param _safekeepingPeriod The amount of years all documents having to do 
+     *                    instance variable `issuerName` for more information.
+     * @param _liability  The liability the issuer guarantees for each issuance
+     * @param _safekeepingPeriod The number of years all documents having to do 
      *                           with the audit will be kept by the issuer
      * @param _issuerSSLCertificate An SSL certificate created for the person or 
      *                              organisation that will issue licenses via 
      *                              this contract. See documentation of instance 
      *                              variable `issuerSSLCertificate` for more 
-     *                              inforamtion.
+     *                              information.
      * @param _issuanceFee The fee that is required to be paid for each license 
      *                     issuance. In Wei. May be changed later.
      */
@@ -478,12 +477,12 @@ contract LicenseContract {
     * @param initialOwnerName The name of the person or organisation to whom the
     *                         licenses shall be issued and who may transfer them 
     *                         on
+    * @param initialOwnerAddress The address that shall initially own all the 
+    *                            licenses
     * @param numLicenses The number of separately tradable licenses to be issued
     * @param auditRemark A free text field containing the result of the license 
     *                    audit
     * @param auditTime The time at which the audit was performed
-    * @param initialOwnerAddress The address that shall initially own all the 
-    *                            licenses
     *
     * @return The issuance number of the newly created issuance
     */
@@ -638,7 +637,7 @@ contract LicenseContract {
      *                       determined
      * @param owner The address that owns the licenses but from which the 
      *              licenses may be reclaimed by `reclaimer`
-     * @param reclaimer The address that is allowed to reclaim licenses from
+     * @param reclaimer The address that is allowed to reclaim the licenses from
      *                  `owner`
      * 
      * @return The number of licenses owned by `owner` but which may be 
@@ -671,10 +670,10 @@ contract LicenseContract {
     }
 
     /**
-     * Transfer `amount` licenses of the given issuance from the sender's 
-     * address to `to`. `to` becomes the temporary owner of the licenses and the 
-     * sender is allowed to reclaim the licenses at any point. `to` is not 
-     * allowed to transfer these licenses to anyone else.
+     * Temporarily transfer `amount` licenses of the given issuance from the 
+     * sender's address to `to`. `to` becomes the temporary owner of the 
+     * licenses and the sender is allowed to reclaim the licenses at any point. 
+     * `to` is not allowed to transfer these licenses to anyone else.
      *
      * This requires that:
      *  - The sender properly owns at least `amount` licenses of the given 
@@ -702,12 +701,12 @@ contract LicenseContract {
      * again.
      *
      * This requires that:
-     *  - The sender previously transferred at least `amount` licenses to `from`
-     *    with the right to reclaim them
+     *  - The sender previously temporarily transferred at least `amount` 
+     *    licenses to `from` with the right to reclaim them
      *  - The sender is different from `from`
      *  - The issuance has not been revoked
      *
-     * Upon successful reclaim, the `Reclaim` event is fired.
+     * Upon successful execution, the `Reclaim` event is fired.
      *
      * @param issuanceNumber The issuance to which the licenses to be reclaimed 
      *                       belong
@@ -770,20 +769,20 @@ contract LicenseContract {
     }
 
     /**
-     * This allows the LOB root to take over managment for this license contract
-     * to fix any mistakes or clean the contract up in case the issuer has lost
-     * access to his address. It will set the contract into a special managment
-     * mode that disallows any managment action by the issuer and grants the
-     * managment address the right to revoke issuances and disable the license
-     * contract.
+     * This allows the LOB root to take over management for this license 
+     * contractto fix any mistakes or clean the contract up in case the issuer 
+     * has lostaccess to his address. It will set the contract into a special 
+     * management mode that disallows any management action by the issuer and 
+     * grants the management address the right to revoke issuances and disable 
+     * the license contract.
      *
-     * Setting the manager address back to `0x0` gives control back to the 
+     * Setting the manager address back to `0x0` passes control back to the 
      * issuer.
      *
      * This can only be invoked by the LOB root.
      *
      * @param _managerAddress The address that will be allowed to perform 
-     *                        managment actions on this license contract.
+     *                        management actions on this license contract.
      */
     function takeOverManagementControl(address _managerAddress) onlyLOBRoot external {
         managerAddress = _managerAddress;
