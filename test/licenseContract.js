@@ -69,7 +69,7 @@ Promise.prototype.thenRelevantIssuances = function(owner, expectedRelevantissuan
   return temp;
 };
 
-Promise.prototype.thenAddressesLicensesCanBeReclaimedFrom = function(issuanceNumber, originalOwner, expectedAddressesLicensesCanBeReclaimedFrom) {
+Promise.prototype.thenTemporaryLicenseHolders = function(issuanceNumber, originalOwner, expectedTemporaryLicenseHolders) {
   var licenseContract;
   var temp = this;
   
@@ -81,17 +81,17 @@ Promise.prototype.thenAddressesLicensesCanBeReclaimedFrom = function(issuanceNum
 
 
   temp = temp.then(function() {
-    return licenseContract.addressesLicensesCanBeReclaimedFromCount(issuanceNumber, originalOwner);
+    return licenseContract.temporaryLicenseHoldersCount(issuanceNumber, originalOwner);
   }).then(function(count) {
-    assert.equal(count, expectedAddressesLicensesCanBeReclaimedFrom.length);
+    assert.equal(count, expectedTemporaryLicenseHolders.length);
   });
 
-  for (var i = 0; i < expectedAddressesLicensesCanBeReclaimedFrom.length; i++) {
+  for (var i = 0; i < expectedTemporaryLicenseHolders.length; i++) {
     var j = i;
     temp = temp.then(function() {
-      return licenseContract.addressesLicensesCanBeReclaimedFrom(issuanceNumber, originalOwner, j);
+      return licenseContract.temporaryLicenseHolders(issuanceNumber, originalOwner, j);
     }).then(function(issuanceNumber) {
-      assert.equal(issuanceNumber, expectedAddressesLicensesCanBeReclaimedFrom[j], "addressesLicensesCanBeReclaimedFrom[" + j + "]");
+      assert.equal(issuanceNumber, expectedTemporaryLicenseHolders[j], "temporaryLicenseHolders[" + j + "]");
     })
   }
   return temp;
@@ -466,8 +466,8 @@ contract("Temporary license transfer", function(accounts) {
     .thenTemporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.secondOwner, 0)
     .thenRelevantIssuances(accounts.firstOwner, [0])
     .thenRelevantIssuances(accounts.secondOwner, [0])
-    .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.firstOwner, [accounts.secondOwner])
-    .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.secondOwner, [])
+    .thenTemporaryLicenseHolders(0, accounts.firstOwner, [accounts.secondOwner])
+    .thenTemporaryLicenseHolders(0, accounts.secondOwner, [])
   });
 
   it("allows the sender to reclaim the licenses in one piece", function() {
@@ -484,8 +484,8 @@ contract("Temporary license transfer", function(accounts) {
     .thenTemporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.firstOwner, 0)
     .thenRelevantIssuances(accounts.firstOwner, [0])
     .thenRelevantIssuances(accounts.secondOwner, [0])
-    .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.firstOwner, [accounts.secondOwner])
-    .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.secondOwner, [])
+    .thenTemporaryLicenseHolders(0, accounts.firstOwner, [accounts.secondOwner])
+    .thenTemporaryLicenseHolders(0, accounts.secondOwner, [])
   });
 
   it("allows the sender to reclaim the licenses piece by piece", function() {

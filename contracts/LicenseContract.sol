@@ -75,20 +75,19 @@ library LicenseContractLib {
         mapping (address => uint64) temporaryBalance;
 
         /**
-         * A list of addresses to which licenses have been transferred with the
-         * right to reclaim them. 
+         * A list of addresses to which licenses have been transferred 
+         * temporarily.
          *
          * This is an auxiliary list to determine the addresses from which 
          * licenses may be reclaimed. Whenever `x` has transferred a licenses
          * to `y` with the right to reclaim it, `y` will be in 
-         * `addressesLicensesCanBeReclaimedFrom[x]`. The list is  never 
-         * cleared, thus the existance of an address in the list does not 
-         * guarantee that a reclaim is possible (e.g. if the licenses has 
-         * already been reclaimed).
+         * `temporaryLicenseHolders[x]`. The list is  never cleared, thus the 
+         * existance of an address in the list does not guarantee that a reclaim 
+         * is possible (e.g. if the licenses has already been reclaimed).
          * Addresses may occur multiple times in the list, since it is only 
          * appended to.
          */
-        mapping (address => address[]) addressesLicensesCanBeReclaimedFrom;
+        mapping (address => address[]) temporaryLicenseHolders;
     }
 
     // Mirror event declarations from LicenseContract to allow them to be 
@@ -142,7 +141,7 @@ library LicenseContractLib {
         issuance.balance[msg.sender][msg.sender] -= amount;
         issuance.balance[to][msg.sender] += amount;
         issuance.temporaryBalance[to] += amount;
-        issuance.addressesLicensesCanBeReclaimedFrom[msg.sender].push(to);
+        issuance.temporaryLicenseHolders[msg.sender].push(to);
 
         Transfer(issuanceNumber, /*from*/msg.sender, to, amount, /*reclaimable*/true);
     }
@@ -526,39 +525,38 @@ contract LicenseContract {
     /**
      * Return the number of addresses from which `originalOwner` may be able to 
      * reclaim licenses of issuance `issuanceNumber`. These addresses can be
-     * retrieved using `addressesLicensesCanBeReclaimedFrom`.
+     * retrieved using `temporaryLicenseHolders`.
      *
-     * Note that because `addressesLicensesCanBeReclaimedFrom` may contain 
-     * duplicate entries and is never cleared, the number of addresses 
-     * `originalOwner` is able to reclaim licenses from is likely lower than
-     * the count returned by this function.
+     * Note that because `temporaryLicenseHolders` may contain duplicate entries 
+     * and is never cleared, the number of addresses `originalOwner` is able to 
+     * reclaim licenses from is likely lower than the count returned by this 
+     * function.
      *
      * @param issuanceNumber The issuance for which the addresses from which 
      *                       licenses may be reclaimable shall be determined
      * @param originalOwner The address that would like to reclaim licenses
      *
      * @return An upper bound (exclusive) on the index for 
-     *         `addressesLicensesCanBeReclaimedFrom`
+     *         `temporaryLicenseHolders`
      */
-    function addressesLicensesCanBeReclaimedFromCount(uint256 issuanceNumber, address originalOwner) external constant returns (uint256) {
-        return issuances[issuanceNumber].addressesLicensesCanBeReclaimedFrom[originalOwner].length;
+    function temporaryLicenseHoldersCount(uint256 issuanceNumber, address originalOwner) external constant returns (uint256) {
+        return issuances[issuanceNumber].temporaryLicenseHolders[originalOwner].length;
     }
 
     /**
      * Return the `index`th address from which licenses may be reclaimable by
      * `originalOwner`. The maximum index can be determined using 
-     * `addressesLicensesCanBeReclaimedFromCount`.
+     * `temporaryLicenseHoldersCount`.
      *
-     * `addressesLicensesCanBeReclaimedFrom` is a list of addresses to which 
-     * licenses have been transferred with the right to reclaim them. 
+     * `temporaryLicenseHolders` is a list of addresses to which licenses have 
+     * been transferred with the right to reclaim them. 
      *
      * It is an auxiliary list to determine the addresses from which 
      * licenses may be reclaimed. Whenever `x` has transferred a licenses
      * to `y` with the right to reclaim it, `y` will be in 
-     * `addressesLicensesCanBeReclaimedFrom[x]`. The list is  never 
-     * cleared, thus the existence of an address in the list does not 
-     * guarantee that a reclaim is possible (e.g. if the licenses has 
-     * already been reclaimed).
+     * `temporaryLicenseHolders[x]`. The list is  never cleared, thus the 
+     * existence of an address in the list does not guarantee that a reclaim is 
+     * possible (e.g. if the licenses has already been reclaimed).
      * Addresses may occur multiple times in the list, since it is only 
      * appended to.
      *
@@ -567,13 +565,13 @@ contract LicenseContract {
      * @param originalOwner The address that would like to reclaim licenses
      * @param index The array index that shall be retrieved. Must be smaller 
      *              than the count returned by
-     *              `addressesLicensesCanBeReclaimedFromCount`
+     *              `temporaryLicenseHoldersCount`
      *
      * @return An address from which `originalOwner` may be able to reclaim 
      *         licenses of the given issuance number
      */
-    function addressesLicensesCanBeReclaimedFrom(uint256 issuanceNumber, address originalOwner, uint256 index) external constant returns (address) {
-        return issuances[issuanceNumber].addressesLicensesCanBeReclaimedFrom[originalOwner][index];
+    function temporaryLicenseHolders(uint256 issuanceNumber, address originalOwner, uint256 index) external constant returns (address) {
+        return issuances[issuanceNumber].temporaryLicenseHolders[originalOwner][index];
     }
 
     // License transfer
