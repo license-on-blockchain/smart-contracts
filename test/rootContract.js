@@ -131,7 +131,7 @@ contract("Withdrawal from license contracts", function(accounts) {
       return licenseContract.sign("0x50", {from: accounts.issuer});
     })
     .then(function() {
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     })
   });
 
@@ -250,7 +250,7 @@ contract("Creating a new license contract", function(accounts) {
       return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 3463676, "createLicenseContract");
+      assert.transactionCost(transaction, 3423980, "createLicenseContract");
     });
   });
 

@@ -106,13 +106,12 @@ class Issuance {
   constructor(array) {
     this.description = array[0];
     this.code = array[1];
-    this.originalOwner = array[2];
-    this.originalSupply = array[3];
-    this.auditTime = array[4];
-    this.auditRemark = array[5];
-    this.revoked = array[6];
-    this.balance = array[7];
-    this.temporaryBalance = array[8];
+    this.originalSupply = array[2];
+    this.auditTime = array[3];
+    this.auditRemark = array[4];
+    this.revoked = array[5];
+    this.balance = array[6];
+    this.temporaryBalance = array[7];
   }
 }
 
@@ -231,7 +230,7 @@ contract("License issuing", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     })
     .thenSolidityThrow()
     .then(function() {
@@ -241,25 +240,25 @@ contract("License issuing", function(accounts) {
 
   it("cannot be performed by an address that is not the issuer", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.secondOwner, value: 500});
+      return instance.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.secondOwner, value: 500});
     }).thenSolidityThrow();
   });
 
   it("cannot be performed by the LOB root", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRoot, value: 500});
+      return instance.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRoot, value: 500});
     }).thenSolidityThrow();
   });
 
   it("cannot be performed by the LOB root owner", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRootOwner, value: 500});
+      return instance.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRootOwner, value: 500});
     }).thenSolidityThrow();
   });
 
   it("cannot be performed if the issuance fee is not transmitted", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 10});
+      return instance.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 10});
     }).thenSolidityThrow();
   });
 
@@ -267,9 +266,9 @@ contract("License issuing", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     }).then(function(transaction) {
-      assert.transactionCost(transaction, 223779, "license issuing");
+      assert.transactionCost(transaction, 201232, "license issuing");
     }).then(function() {
       return licenseContract.issuancesCount();
     }).then(function(issuancesCount) {
@@ -291,14 +290,6 @@ contract("License issuing", function(accounts) {
       return instance.issuances(0); 
     }).then(function(issuance) {
       assert.equal(new Issuance(issuance).code, "ID");
-    });
-  });
-
-  it("sets the original owner", function() {
-    return LicenseContract.deployed().then(function(instance) {
-      return instance.issuances(0); 
-    }).then(function(issuance) {
-      assert.equal(new Issuance(issuance).originalOwner, "Original owner");
     });
   });
 
@@ -338,7 +329,7 @@ contract("License issuing", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     })
     .thenBalance(0, accounts.firstOwner, 70);
   });
@@ -353,7 +344,7 @@ contract("License transfer", function(accounts) {
       licenseContract = instance;
       return licenseContract.sign("0x051381", {from: accounts.issuer});
     }).then(function() {
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     });
   });
 
@@ -451,7 +442,7 @@ contract("Reclaimable license transfer", function(accounts) {
       licenseContract = instance;
       return licenseContract.sign("0x051381", {from: accounts.issuer});
     }).then(function() {
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     });
   });
 
@@ -581,7 +572,7 @@ contract("Revoking an issuing", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc2", "ID", "Second original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc2", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     })
     .then(function() {
       return licenseContract.revoke(0, {from: accounts.firstOwner});
@@ -591,13 +582,13 @@ contract("Revoking an issuing", function(accounts) {
 
   it("cannot be performed by the LOB root", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRoot, value: 500});
+      return instance.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRoot, value: 500});
     }).thenSolidityThrow();
   });
 
   it("cannot be performed by the LOB root owner if it has not taken over control", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRootOwner, value: 500});
+      return instance.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRootOwner, value: 500});
     }).thenSolidityThrow();
   });
 
@@ -605,7 +596,7 @@ contract("Revoking an issuing", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc2", "ID", "Second original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc2", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     })
     .then(function() {
       return licenseContract.revoke(0, {from: accounts.issuer});
@@ -635,7 +626,7 @@ contract("Disabling the license contract", function(accounts) {
       return licenseContract.sign("0x051381", {from: accounts.issuer});
     })
     .then(function() {
-      return licenseContract.issueLicense("Desc", "ID", "First original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     });
   });
 
@@ -678,7 +669,7 @@ contract("Disabling the license contract", function(accounts) {
   it("does not allow the issuance of licenses after the contract has been disabled", function() {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
-      return instance.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer});
+      return instance.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer});
     })
     .thenSolidityThrow();
   });
@@ -732,7 +723,7 @@ contract("Withdrawing fees", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
     }).then(function() {
       return licenseContract.withdraw(6000, accounts.lobRoot, {from:accounts.lobRoot})
     }).then(function() {
@@ -744,7 +735,7 @@ contract("Withdrawing fees", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
     }).then(function() {
       return licenseContract.withdraw(6000, accounts.lobRoot, {from:accounts.issuer})
     }).thenSolidityThrow();
@@ -766,7 +757,7 @@ contract("Taking over management", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
     }).then(function() {
       return licenseContract.takeOverManagementControl(accounts.issuer, {from: accounts.issuer});
     }).thenSolidityThrow();
@@ -788,7 +779,7 @@ contract("Taking over management", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
     }).thenSolidityThrow();
   });
 
@@ -824,7 +815,7 @@ contract("Taking over management", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", "Original owner", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.manager, value: 7000});
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.manager, value: 7000});
     }).thenSolidityThrow();
   });
 

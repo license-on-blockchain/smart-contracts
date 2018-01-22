@@ -19,12 +19,6 @@ library LicenseContractLib {
          * description.
          */
         string code;
-
-        /**
-         * The name of the person or organisation to whom the licenses were 
-         * originally issued
-         */
-        string initialOwnerName;
         
         /**
          * The number of licenses originally issued in this issuance. 
@@ -108,10 +102,10 @@ library LicenseContractLib {
      * technical limitations, this does not set original supply or initalises
      * the balances mapping.
      */
-    function insert(Issuance[] storage issuances, string description, string code, string initialOwnerName, uint32 auditTime, string auditRemark) public returns (uint256) {
+    function insert(Issuance[] storage issuances, string description, string code, uint32 auditTime, string auditRemark) public returns (uint256) {
         // Passing originalSupply would exceed the number of allowed parameters
         // it is thus set in `createInitialLicenses`.
-        return issuances.push(Issuance(description, code, initialOwnerName, /*originalSupply*/0, auditTime, auditRemark, /*revoked*/false)) - 1;
+        return issuances.push(Issuance(description, code, /*originalSupply*/0, auditTime, auditRemark, /*revoked*/false)) - 1;
     }
 
     /**
@@ -474,9 +468,6 @@ contract LicenseContract {
     * 
     * @param description A human-readable description of the license type
     * @param code An unambiguous code for the license type
-    * @param initialOwnerName The name of the person or organisation to whom the
-    *                         licenses shall be issued and who may transfer them 
-    *                         on
     * @param initialOwnerAddress The address that shall initially own all the 
     *                            licenses
     * @param numLicenses The number of separately tradable licenses to be issued
@@ -489,7 +480,6 @@ contract LicenseContract {
     function issueLicense(
         string description,
         string code,
-        string initialOwnerName,
         address initialOwnerAddress,
         uint64 numLicenses,
         string auditRemark,
@@ -506,7 +496,7 @@ contract LicenseContract {
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
         require(msg.value >= issuanceFee);
-        var issuanceNumber = issuances.insert(description, code, initialOwnerName, auditTime, auditRemark);
+        var issuanceNumber = issuances.insert(description, code, auditTime, auditRemark);
         relevantIssuances[initialOwnerAddress].push(issuanceNumber);
         return issuances.createInitialLicenses(issuanceNumber, numLicenses, initialOwnerAddress);
     }
