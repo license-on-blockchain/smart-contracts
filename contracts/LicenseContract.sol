@@ -446,7 +446,7 @@ contract LicenseContract {
     *
     * @param _signature The signature with which to sign the license contract
     */
-    function sign(bytes _signature) onlyIssuer public {
+    function sign(bytes _signature) onlyIssuer external {
         // Don't allow resigning of the contract
         require(signature.length == 0);
         Signing();
@@ -664,7 +664,7 @@ contract LicenseContract {
      * @param to The address the licenses shall be transferred to
      * @param amount The number of licenses that shall be transferred
      */
-    function transfer(uint256 issuanceNumber, address to, uint64 amount) public {
+    function transfer(uint256 issuanceNumber, address to, uint64 amount) external {
         relevantIssuances[to].push(issuanceNumber);
         issuances.transferFromMessageSender(issuanceNumber, to, amount);
     }
