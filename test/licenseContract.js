@@ -433,7 +433,7 @@ contract("License transfer", function(accounts) {
   });
 });
 
-contract("Reclaimable license transfer", function(accounts) {
+contract("Temporary license transfer", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
   before(function() {
@@ -451,10 +451,10 @@ contract("Reclaimable license transfer", function(accounts) {
     return LicenseContract.deployed()
     .then(function(instance) {
       licenseContract = instance;
-      return licenseContract.reclaimableTransfer(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
+      return licenseContract.transferTemporarily(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 140618, "reclaimableTransfer");
+      assert.transactionCost(transaction, 141146, "transferTemporarily");
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
@@ -470,7 +470,7 @@ contract("Reclaimable license transfer", function(accounts) {
     .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.secondOwner, [])
   });
 
-  it("allows the lender to reclaim the licenses in one piece", function() {
+  it("allows the sender to reclaim the licenses in one piece", function() {
     return LicenseContract.deployed().then(function(instance) {
       return instance.reclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
@@ -488,11 +488,11 @@ contract("Reclaimable license transfer", function(accounts) {
     .thenAddressesLicensesCanBeReclaimedFrom(0, accounts.secondOwner, [])
   });
 
-  it("allows the lender to reclaim the licenses piece by piece", function() {
+  it("allows the sender to reclaim the licenses piece by piece", function() {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.reclaimableTransfer(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
+      return licenseContract.transferTemporarily(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .then(function() {
       return licenseContract.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner})
@@ -509,28 +509,28 @@ contract("Reclaimable license transfer", function(accounts) {
     .thenTemporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.firstOwner, 10)
   });
 
-  it("does not allow the borrower to transfer the licenses on", function() {
+  it("does not allow the temporary owner to transfer the licenses on", function() {
     return LicenseContract.deployed().then(function(instance) {
       return instance.transfer(0, accounts.thirdOwner, 5, {from:accounts.secondOwner});
     })
     .thenSolidityThrow();
   });
 
-  it("does not allow the borrower to lend the licenses on", function() {
+  it("does not allow the temporary owner to lend the licenses on", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.reclaimableTransfer(0, accounts.thirdOwner, 5, {from:accounts.secondOwner});
+      return instance.transferTemporarily(0, accounts.thirdOwner, 5, {from:accounts.secondOwner});
     })
     .thenSolidityThrow();
   });
 
-  it("does not work if the lender does not own enough licenses", function() {
+  it("does not work if the sender does not own enough licenses", function() {
     return LicenseContract.deployed().then(function(instance) {
-      return instance.reclaimableTransfer(0, accounts.secondOwner, 100, {from: accounts.firstOwner});
+      return instance.transferTemporarily(0, accounts.secondOwner, 100, {from: accounts.firstOwner});
     })
     .thenSolidityThrow();
   });
 
-  it("does not allow anyone but the borrower to reclaim licenses", function() {
+  it("does not allow anyone but the original owner to reclaim licenses", function() {
     return LicenseContract.deployed().then(function(instance) {
       return instance.reclaim(0, accounts.secondOwner, 5, {from:accounts.thirdOwner});
     })
@@ -544,7 +544,7 @@ contract("Reclaimable license transfer", function(accounts) {
       return licenseContract.revoke(0, {from: accounts.issuer});
     })
     .then(function() {
-      return licenseContract.reclaimableTransfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner});
+      return licenseContract.transferTemporarily(0, accounts.secondOwner, 10, {from: accounts.firstOwner});
     })
     .thenSolidityThrow();
   })
