@@ -250,7 +250,7 @@ contract("Creating a new license contract", function(accounts) {
       return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 3423980, "createLicenseContract");
+      assert.transactionCost(transaction, 3423167, "createLicenseContract");
     });
   });
 
