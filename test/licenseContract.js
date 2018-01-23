@@ -369,7 +369,7 @@ contract("License transfer", function(accounts) {
       return licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 79111, "transfer");
+      assert.transactionCost(transaction, 79003, "transfer");
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
@@ -750,6 +750,12 @@ contract("Taking over management", function(accounts) {
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
       return licenseContract.sign("0x051381", {from: accounts.issuer});
+    })
+    .then(function() {
+      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
+    })
+    .then(function() {
+      return licenseContract.issueLicense("Desc2", "ID2", accounts.firstOwner, 100, "Remark2", 1509552789, {from:accounts.issuer, value: 7000});
     });
   });
 
@@ -757,7 +763,6 @@ contract("Taking over management", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
     }).then(function() {
       return licenseContract.takeOverManagementControl(accounts.issuer, {from: accounts.issuer});
     }).thenSolidityThrow();
@@ -828,6 +833,18 @@ contract("Taking over management", function(accounts) {
       return licenseContract.disabled();
     }).then(function(disabled) {
       assert.equal(disabled, true);
+    });
+  });
+
+  it("allows the manager to revoke licenses even if the license contract has been disabled", function() {
+    var licenseContract;
+    return LicenseContract.deployed().then(function(instance) {
+      licenseContract = instance;
+      return licenseContract.revoke(1, {from: accounts.manager});
+    }).then(function() {
+      return licenseContract.issuances(1); 
+    }).then(function(issuance) {
+      assert.equal(new Issuance(issuance).revoked, true);
     });
   });
 })

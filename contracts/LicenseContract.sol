@@ -247,7 +247,8 @@ contract LicenseContract {
 
     /**
      * Whether or not this license contract has been disabled and thus disallows
-     * any further issuings.
+     * any further issuings and revokes by the issuer. If control is taken over 
+     * by the root contract's owner, the manager may still revoke licenses.
      */
     bool public disabled;
 
@@ -707,14 +708,17 @@ contract LicenseContract {
 
     /**
      * Revoke the given issuance, disallowing any further license transfers 
-     * (including temporary transfers) or reclaims. This action cannot be undone 
-     * and can only be  performed by the issuer or the manager if LOB has taken 
-     * over control for this license contract.
+     * (including temporary transfers) or reclaims. This action cannot be 
+     * undone.
+     * This can be performed by the issuer if control has not been taken over 
+     * for this license contract and the license contract has not been disabled.
+     * If control has been taken over, the manager may revoke licenses even if
+     * the license contract has been disabled.
      *
      * @param issuanceNumber The issuance that shall be revoked
      */
-    function revoke(uint256 issuanceNumber) onlyCurrentManager external {
-        require(!disabled);
+    function revoke(uint256 issuanceNumber) external {
+        require((msg.sender == issuer && managerAddress == address(0) && !disabled) || msg.sender == managerAddress);
         issuances[issuanceNumber].revoked = true;
         Revoke(issuanceNumber);
     }
@@ -747,7 +751,8 @@ contract LicenseContract {
 
     /**
      * Disable the license contract, disallowing any further license issuances 
-     * and license revocations while still allowing licenses to be transferred. 
+     * and license revocations by the issuer (a potential manager will still be 
+     * able to revoke licenses) while still allowing licenses to be transferred. 
      * This action cannot be undone. It can only be performed by the issuer or 
      * the manager if LOB has taken over control for this license contract.
      */
