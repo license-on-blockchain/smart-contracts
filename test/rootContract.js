@@ -115,6 +115,9 @@ contract("License contract's root", function(accounts) {
 contract("Withdrawal from license contracts", function(accounts) {
   accounts = require("../accounts.js")(accounts);
 
+  var rootContract;
+  var licenseContract;
+
   before(function() {
     return RootContract.deployed().then(function(instance) {
       rootContract = instance;
@@ -308,5 +311,41 @@ contract("Creating a new license contract", function(accounts) {
       return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .thenSolidityThrow();
+  });
+});
+
+contract("License contract control takeover", function(accounts) {
+  accounts = require("../accounts.js")(accounts);
+
+  var rootContract;
+  var licenseContract;
+
+  before(function() {
+    return RootContract.deployed().then(function(instance) {
+      rootContract = instance;
+      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+    })
+    .then(function(transaction) {
+      var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
+      assert.equal(creationLogs.length, 1);
+      var creationLog = creationLogs[0];
+      var licenseContractAddress = creationLog.args.licenseContractAddress;
+      licenseContract = LicenseContract.at(licenseContractAddress);
+    });
+  });
+
+  it("cannot be initiated by anyone but the root contract's owner", function() {
+    return rootContract.takeOverLicenseContractControl(licenseContract.address, accounts.manager, {from: accounts.issuer})
+    .thenSolidityThrow();
+  })
+
+  it("can be initiated by the root contract's owner", function() {
+    return rootContract.takeOverLicenseContractControl(licenseContract.address, accounts.manager, {from: accounts.lobRootOwner})
+    .then(function() {
+      return licenseContract.managerAddress();
+    })
+    .then(function(managerAddress) {
+      assert.equal(managerAddress, accounts.manager);
+    });
   });
 });

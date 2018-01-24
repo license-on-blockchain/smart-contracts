@@ -191,4 +191,8 @@ contract RootContract {
         disabled = true;
         Disabling();
     }
+
+    function takeOverLicenseContractControl(address licenseContractAddress, address managerAddress) external onlyOwner {
+        LicenseContract(licenseContractAddress).takeOverManagementControl(managerAddress);
+    }
 }
