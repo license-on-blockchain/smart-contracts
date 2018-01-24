@@ -110,8 +110,10 @@ class Issuance {
     this.auditTime = array[3];
     this.auditRemark = array[4];
     this.revoked = array[5];
-    this.balance = array[6];
-    this.temporaryBalance = array[7];
+    this.revocationReason = array[6];
+    this.balance = array[7];
+    this.temporaryBalance = array[8];
+    this.temporaryLicenseHolders = array[9];
   }
 }
 
@@ -268,7 +270,7 @@ contract("License issuing", function(accounts) {
       licenseContract = instance;
       return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     }).then(function(transaction) {
-      assert.transactionCost(transaction, 201232, "license issuing");
+      assert.transactionCost(transaction, 206872, "license issuing");
     }).then(function() {
       return licenseContract.issuancesCount();
     }).then(function(issuancesCount) {
@@ -541,7 +543,7 @@ contract("Temporary license transfer", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.revoke(0, {from: accounts.issuer});
+      return licenseContract.revoke(0, "n/a", {from: accounts.issuer});
     })
     .then(function() {
       return licenseContract.transferTemporarily(0, accounts.secondOwner, 10, {from: accounts.firstOwner});
@@ -575,7 +577,7 @@ contract("Revoking an issuing", function(accounts) {
       return licenseContract.issueLicense("Desc2", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     })
     .then(function() {
-      return licenseContract.revoke(0, {from: accounts.firstOwner});
+      return licenseContract.revoke(0, "n/a", {from: accounts.firstOwner});
     })
     .thenSolidityThrow();
   });
@@ -599,13 +601,15 @@ contract("Revoking an issuing", function(accounts) {
       return licenseContract.issueLicense("Desc2", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     })
     .then(function() {
-      return licenseContract.revoke(0, {from: accounts.issuer});
+      return licenseContract.revoke(0, "My revocation reason", {from: accounts.issuer});
     })
     .then(function() {
       return licenseContract.issuances(0);
     })
-    .then(function(issuance) {
-      assert.equal(new Issuance(issuance).revoked, true);
+    .then(function(issuanceData) {
+      var issuance = new Issuance(issuanceData);
+      assert.equal(issuance.revoked, true);
+      assert.equal(issuance.revocationReason, "My revocation reason");
     })
   });
 
@@ -677,7 +681,7 @@ contract("Disabling the license contract", function(accounts) {
   it("does not allow issuances to be revoked after the contract has been disabled", function() {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
-      return instance.revoke(0, {from: accounts.issuer});
+      return instance.revoke(0, "", {from: accounts.issuer});
     })
     .thenSolidityThrow();
   });
@@ -792,7 +796,7 @@ contract("Taking over management", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.revoke(0, {from: accounts.issuer});
+      return licenseContract.revoke(0, "", {from: accounts.issuer});
     }).thenSolidityThrow();
   });
 
@@ -808,7 +812,7 @@ contract("Taking over management", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.revoke(0, {from: accounts.manager});
+      return licenseContract.revoke(0, "", {from: accounts.manager});
     }).then(function() {
       return licenseContract.issuances(0); 
     }).then(function(issuance) {
@@ -840,7 +844,7 @@ contract("Taking over management", function(accounts) {
     var licenseContract;
     return LicenseContract.deployed().then(function(instance) {
       licenseContract = instance;
-      return licenseContract.revoke(1, {from: accounts.manager});
+      return licenseContract.revoke(1, "", {from: accounts.manager});
     }).then(function() {
       return licenseContract.issuances(1); 
     }).then(function(issuance) {

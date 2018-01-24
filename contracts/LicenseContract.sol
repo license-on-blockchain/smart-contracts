@@ -46,6 +46,12 @@ library LicenseContractLib {
         bool revoked;
 
         /**
+         * If the license has been revoked, a free text filled by the issuer
+         * explaining why he as revoked the issuance.
+         */
+        string revocationReason;
+
+        /**
          * Main data structure managing who owns how many licenses.
          *
          * `balance[x][y] == value` means that `x` owns `value` licenses but `y`
@@ -104,7 +110,7 @@ library LicenseContractLib {
     function insert(Issuance[] storage issuances, string description, string code, uint32 auditTime, string auditRemark) public returns (uint256) {
         // Passing originalSupply would exceed the number of allowed parameters
         // it is thus set in `createInitialLicenses`.
-        return issuances.push(Issuance(description, code, /*originalSupply*/0, auditTime, auditRemark, /*revoked*/false)) - 1;
+        return issuances.push(Issuance(description, code, /*originalSupply*/0, auditTime, auditRemark, /*revoked*/false, /*revocationReason*/"")) - 1;
     }
 
     /**
@@ -716,10 +722,13 @@ contract LicenseContract {
      * the license contract has been disabled.
      *
      * @param issuanceNumber The issuance that shall be revoked
+     * @param revocationReason A free text explaining why the issuance is 
+     *                         revoked
      */
-    function revoke(uint256 issuanceNumber) external {
+    function revoke(uint256 issuanceNumber, string revocationReason) external {
         require((msg.sender == issuer && managerAddress == address(0) && !disabled) || msg.sender == managerAddress);
         issuances[issuanceNumber].revoked = true;
+        issuances[issuanceNumber].revocationReason = revocationReason;
         Revoke(issuanceNumber);
     }
 
