@@ -99,7 +99,7 @@ library LicenseContractLib {
     // Mirror event declarations from LicenseContract to allow them to be 
     // emitted from the library
     event Issuing(uint256 issuanceNumber);
-    event Transfer(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount, bool reclaimable);
+    event Transfer(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount, bool temporary);
     event Reclaim(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount);
 
     /**
@@ -123,7 +123,7 @@ library LicenseContractLib {
         issuance.originalSupply = originalSupply;
         issuances[issuanceNumber].balance[initialOwnerAddress][initialOwnerAddress] = originalSupply;
         Issuing(issuanceNumber);
-        Transfer(issuanceNumber, 0x0, initialOwnerAddress, originalSupply, false);
+        Transfer(issuanceNumber, 0x0, initialOwnerAddress, originalSupply, /*temporary*/false);
         return issuanceNumber;
     }
 
@@ -135,7 +135,7 @@ library LicenseContractLib {
         issuance.balance[msg.sender][msg.sender] -= amount;
         issuance.balance[to][to] += amount;
 
-        Transfer(issuanceNumber, /*from*/msg.sender, to, amount, /*reclaimable*/false);
+        Transfer(issuanceNumber, /*from*/msg.sender, to, amount, /*temporary*/false);
     }
 
     function transferTemporarilyFromMessageSender(Issuance[] storage issuances, uint256 issuanceNumber, address to, uint64 amount) internal {
@@ -149,7 +149,7 @@ library LicenseContractLib {
         issuance.temporaryBalance[to] += amount;
         issuance.temporaryLicenseHolders[msg.sender].push(to);
 
-        Transfer(issuanceNumber, /*from*/msg.sender, to, amount, /*reclaimable*/true);
+        Transfer(issuanceNumber, /*from*/msg.sender, to, amount, /*temporary*/true);
     }
 
     function reclaimToSender(Issuance[] storage issuances, uint256 issuanceNumber, address from, uint64 amount) public {
@@ -309,10 +309,10 @@ contract LicenseContract {
      * @param from The address that previously owned the licenses
      * @param to The address that the licenses are transferred to
      * @param amount The number of licenses transferred in this transfer
-     * @param reclaimable Whether or not `from` is allowed to reclaim the 
+     * @param temporary Whether or not `from` is allowed to reclaim the 
      *                    transferred licenses
      */
-    event Transfer(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount, bool reclaimable);
+    event Transfer(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount, bool temporary);
 
     /**
      * Fired every time an address reclaims licenses that were previously 
@@ -652,7 +652,7 @@ contract LicenseContract {
      *  - The issuance has not been revoked
      *
      * Upon successful transfer, this fires the `Transfer` event with 
-     * `reclaimable` set to `false`.
+     * `temporary` set to `false`.
      *
      * @param issuanceNumber The issuance to which the licenses to be 
      *                       transferred belong
@@ -677,7 +677,7 @@ contract LicenseContract {
      *  - The issuance has not been revoked
      *
      * Upon successful transfer, this fires the `Transfer` event with 
-     * `reclaimable` set to `true`.
+     * `temporary` set to `true`.
      *
      * @param issuanceNumber The issuance to which the licenses to be 
      *                       transferred belong
