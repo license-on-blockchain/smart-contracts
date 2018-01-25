@@ -99,8 +99,8 @@ library LicenseContractLib {
     // Mirror event declarations from LicenseContract to allow them to be 
     // emitted from the library
     event Issuing(uint256 issuanceNumber);
-    event Transfer(uint256 issuanceNumber, address from, address to, uint64 amount, bool reclaimable);
-    event Reclaim(uint256 issuanceNumber, address from, address to, uint64 amount);
+    event Transfer(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount, bool reclaimable);
+    event Reclaim(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount);
 
     /**
      * Insert a new issuance with the given parameters into the array. Due to 
@@ -312,7 +312,7 @@ contract LicenseContract {
      * @param reclaimable Whether or not `from` is allowed to reclaim the 
      *                    transferred licenses
      */
-    event Transfer(uint256 issuanceNumber, address from, address to, uint64 amount, bool reclaimable);
+    event Transfer(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount, bool reclaimable);
 
     /**
      * Fired every time an address reclaims licenses that were previously 
@@ -323,14 +323,14 @@ contract LicenseContract {
      * @param to The address that now reclaims the licenses
      * @param amount The number of licenses `to` reclaims from `from`
      */
-    event Reclaim(uint256 issuanceNumber, address from, address to, uint64 amount);
+    event Reclaim(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount);
 
     /**
      * Fired when an issuance gets revoked by the issuer.
      *
      * @param issuanceNumber The issuance that gets revoked
      */
-    event Revoke(uint256 issuanceNumber);
+    event Revoke(uint256 indexed issuanceNumber);
 
     /**
      * Fired when the issuance fee required to issue new licenses changes. Fired 
