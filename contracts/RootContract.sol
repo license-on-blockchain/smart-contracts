@@ -46,10 +46,17 @@ contract RootContract {
      */
     address[] public licenseContracts;
 
+    /**
+     * A version number used to determine the correct ABI for license contracts 
+     * created through this root contract.
+     *
+     * This field will always be available in all future versions of the root 
+     * contract.
+     */
     uint16 public version = 5;
 
     /**
-     * Fired every time a new license contract is created.
+     * Fired when a new license contract is created.
      *
      * @param licenseContractAddress The address of the newly created license 
      *                               contract
@@ -87,9 +94,9 @@ contract RootContract {
      *                   that will use the license contract to issue LOB 
      *                   licenses
      * @param liability A free text in which the issuer can describe the 
-     *                  liability he will take for all of his issuances
-     * @param safekeepingPeriod The amount of years all documents having to do 
-     *                          with the audit will be kept by the issuer
+     *                  liability he will assume for all of his issuances
+     * @param safekeepingPeriod The amount of years all documents related to the 
+     *                          audit will be kept by the issuer
      * @param issuerSSLCertificate The SSL certificate that will be used to sign 
      *                             the license contract. See the license 
      *                             contract's documentation on the requirements 
@@ -105,7 +112,7 @@ contract RootContract {
     // Retrieving license contract addresses
 
     /**
-     * Retrieve the number of license contract addresses stored in the 
+     * Determine the number of license contract addresses stored in the 
      * `liceseContracts` instance variable.
      *
      * @return The number of elements in the `liceseContract` variable
@@ -125,7 +132,7 @@ contract RootContract {
      * @param licenseContractAddress The address of the license contract for 
      *                               which the issuance fee shall be changed
      * @param newFee The new fee that shall be required for every license 
-     *               issuance done through this license contract
+     *               issuing done through this license contract
      */
     function setLicenseContractIssuanceFee(address licenseContractAddress, uint128 newFee) external onlyOwner {
         LicenseContract(licenseContractAddress).setIssuanceFee(newFee);
@@ -192,6 +199,17 @@ contract RootContract {
         Disabling();
     }
 
+    /**
+     * Take over control of a license contract, disallowing any manamgement 
+     * actions by the issuer and allowing the manager to revoke issuances and
+     * disable the license contract.
+     * 
+     * Setting the manager address to `0x0` passes control back to the issuer.
+     *
+     * @param licenseContractAddress The address of the license contract for 
+     *                               which control should be taken over
+     * @param managerAddress The address that shall manage the license contract
+     */
     function takeOverLicenseContractControl(address licenseContractAddress, address managerAddress) external onlyOwner {
         LicenseContract(licenseContractAddress).takeOverManagementControl(managerAddress);
     }

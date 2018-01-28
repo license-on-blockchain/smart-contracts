@@ -41,7 +41,7 @@ library LicenseContractLib {
 
         /** 
          * Whether or not this issuance has been revoked, thus not allowing any
-         * more license transfers.
+         * more license transfers, temporary transfers or revokes.
          */
         bool revoked;
 
@@ -63,7 +63,7 @@ library LicenseContractLib {
          * Licenses owned by `0x0` have been destroyed.
          *
          * The following invariant always holds:
-         * `sum_{x, y} (balance[x][y]) == totalSupply`
+         * `sum_{x, y} (balance[x][y]) == originalSupply`
          */
         mapping (address => mapping(address => uint64)) balance;
 
@@ -72,8 +72,8 @@ library LicenseContractLib {
          * licenses currently owned by an address.
          *
          * `temporaryBalance[x] = sum_{y, y != x} (balance[x][y])`, i.e.
-         * `temporaryBalance` manages the number of licenses currently 
-         * owned by `x` that may be reclaimed by someone else.
+         * `temporaryBalance` keeps track of the number of licenses temporarily
+         * owned by `x`.
          *
          * The total number of licenses owned by an address `x` is thus
          * `temporaryBalance[x] + balance[x][x]`.
@@ -85,7 +85,7 @@ library LicenseContractLib {
          * temporarily.
          *
          * This is an auxiliary list to determine the addresses from which 
-         * licenses may be reclaimed. Whenever `x` has transferred a licenses
+         * licenses may be reclaimed. Whenever `x` has transferred a license
          * to `y` with the right to reclaim it, `y` will be in 
          * `temporaryLicenseHolders[x]`. The list is  never cleared, thus the 
          * existance of an address in the list does not guarantee that a reclaim 
@@ -104,7 +104,7 @@ library LicenseContractLib {
 
     /**
      * Insert a new issuance with the given parameters into the array. Due to 
-     * technical limitations, this does not set original supply or initalises
+     * technical limitations, this does not set original supply nor initalises
      * the balances mapping.
      */
     function insert(Issuance[] storage issuances, string description, string code, uint32 auditTime, string auditRemark) public returns (uint256) {
@@ -114,9 +114,9 @@ library LicenseContractLib {
     }
 
     /**
-     * Assign the originalSupply member of the issuance with the given issuance
-     * number and assign `initialOwnerAddress` all initial licenses. This also 
-     * emits all corresponding events.
+     * Assign the `originalSupply` member of the issuance with the given 
+     * issuance number and assign `initialOwnerAddress` all initial licenses. 
+     * This also emits all corresponding events.
      */
     function createInitialLicenses(Issuance[] storage issuances, uint256 issuanceNumber, uint64 originalSupply, address initialOwnerAddress) public returns (uint256) {
         var issuance = issuances[issuanceNumber];
@@ -170,21 +170,25 @@ contract LicenseContract {
 
     using LicenseContractLib for LicenseContractLib.Issuance[];
 
-    /// Assert that the message is sent by the contract's issuer.
+    /**
+     * Asserts that the message is sent by the contract's issuer.
+     */
     modifier onlyIssuer() {
         require(msg.sender == issuer);
         _;
     }
 
-    /// Assert that the message is sent by the LOB root of this contract.
+    /**
+     * Assert that the message is sent by the LOB root of this contract.
+     */
     modifier onlyLOBRoot() {
         require(msg.sender == lobRoot);
         _;
     }
 
     /**
-     * Asserts that the message is sent by the issuer if `managerAddress` is 
-     * `0x0` or `managerAddress` if it is not `0x0`.
+     * Assert that the message is sent by the issuer if `managerAddress` is 
+     * `0x0` or the message is sent by `managerAddress` if it is not `0x0`.
      */
     modifier onlyCurrentManager() {
         require((msg.sender == issuer && managerAddress == address(0)) || msg.sender == managerAddress);
@@ -196,23 +200,22 @@ contract LicenseContract {
      * organisation issuing licenses via this contract. 
      * This should to the most possible extend match the name in the 
      * `issuerSSLCertificate`. Ideally, `issuerSSLCertificate` is a Class 3 EV 
-     * certificateis and issued to exactly this name. Should
-     * `issuerSSLCertificate` be class 2 only, the URL contained in the 
-     * certificate should obviously refer to the website of this person or 
-     * organisation.
-     * It is not validated on the blockchain if this invariant holds but should 
-     * be done in wallet software or by the user.
+     * certificate and issued to exactly this name. Should
+     * `issuerSSLCertificate` reference a URL, this URL should obviously refer 
+     * to the website of this person or organisation.
+     * It is not validated on the blockchain if this invariant holds because the 
+     * comutational cost would be too high.
      */
     string public issuerName;
 
-    /*
+    /**
      * The liability the issuer guarantees for each issuance.
      */
     string public liability;
 
     /**
-     * The number of years all documents having to do with an audit will be kept
-     * safe by the issuer.
+     * The number of years all documents related to the audit will be kept safe 
+     * by the issuer.
      */
     uint8 public safekeepingPeriod;
 
@@ -223,18 +226,18 @@ contract LicenseContract {
      * constraints on how the name in this certificate should match the name 
      * stored in `issuerName`.
      *
-     * It is not verified on the blockchain if this certificate is in the 
-     * correct format.
-     *
      * The certificate needs to be PKCS#12 encoded and encrypted with an empty 
      * password.
+     *
+     * It is not verified on the blockchain if this certificate is in the 
+     * correct format because the computational cost would be too high.
      */
     bytes public issuerSSLCertificate;
 
     /**
-     * The fee in wei that is required to be payed for every license issuance. 
-     * The fees are collected in the license contract and may be withdrawn by 
-     * the LOB root.
+     * The fee in Wei that is required to be payed for every license issuance 
+     * under this license contract. The fees are collected in the license 
+     * contract and may be withdrawn by the LOB root.
      */
     uint128 public issuanceFee;
 
@@ -246,8 +249,8 @@ contract LicenseContract {
     address public lobRoot;
 
     /**
-     * The address that is allowed to issue and revoke licenses via this license
-     * contract.
+     * The address that is allowed to issue and revoke issuances and disable the 
+     * license contract.
      */
     address public issuer;
 
@@ -274,9 +277,12 @@ contract LicenseContract {
      * A list of all the issuance numbers for which the given address has ever 
      * owned a license.
      *
-     * This list is never cleared, and the existance of an issuance number in it 
-     * does not guarantee that the address currently owns licenses of this type.
-     * Also, issuance numbers may occur multiple times.
+     * The purpose of this cache is to find an over-approximation of the license
+     * numbers for which a given address currently owns licenses. To keep 
+     * computational cost low, this list is never cleared. Hence, the existance 
+     * of an issuance number in it does not guarantee that the address currently 
+     * owns licenses of this type. Since it is only appended to, issuance 
+     * numbers may occur multiple times.
      */
     mapping(address => uint256[]) public relevantIssuances;
 
@@ -293,30 +299,30 @@ contract LicenseContract {
     // Events
 
     /**
-     * Fired every time new licenses are issued. 
+     * Fired when a new issuance is created.
      *
      * @param issuanceNumber The issuance number of the newly created issuance
      */
     event Issuing(uint256 issuanceNumber);
 
     /**
-     * Fired every time license are transferred. A transfer from `0x0` is fired
-     * upon the issuance of licenses and a transfer to `0x0` means that licenses
-     * got destroyed.
+     * Fired when a license is transferred. A transfer from `0x0` is fired when
+     * licenses are issued and a transfer to `0x0` means that licenses got
+     * destroyed.
      *
      * @param issuanceNumber The issuance to which the transferred licenses
      *                       belong
      * @param from The address that previously owned the licenses
-     * @param to The address that the licenses are transferred to
+     * @param to The address to which the licenses are transferred
      * @param amount The number of licenses transferred in this transfer
-     * @param temporary Whether or not `from` is allowed to reclaim the 
-     *                    transferred licenses
+     * @param temporary Whether or not the licenses have been transferred 
+     *                  temporarily and `from` is allowed to reclaim them
      */
     event Transfer(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount, bool temporary);
 
     /**
-     * Fired every time an address reclaims licenses that were previously 
-     * transferred temporarily.
+     * Fired when an address reclaims licenses that were previously transferred
+     * temporarily.
      *
      * @param issuanceNumber The issuance to which the reclaimed licenses belong
      * @param from The address to whom the licenses were previously transferred
@@ -333,10 +339,12 @@ contract LicenseContract {
     event Revoke(uint256 indexed issuanceNumber);
 
     /**
-     * Fired when the issuance fee required to issue new licenses changes. Fired 
-     * with the default issuance fee from the constructor of this contract.
+     * Fired when the issuance fee required to issue new licenses changes. This 
+     * is fired once from the license contract's constructor with the initial
+     * issuance fee for this license contract.
      *
-     * @param newFee The new fee that is required every time licenses are issued
+     * @param newFee The new fee that is required to be paid every time an 
+     *               issuance is created
      */
     event IssuanceFeeChange(uint128 newFee);
 
@@ -362,8 +370,10 @@ contract LicenseContract {
     // Constructor
 
     /**
-     * Create a new license contract. The sender of this message is the initial 
-     * LOB root. Should only be invoked by the root contract.
+     * Create a new license contract. The sender of this message becomes the LOB 
+     * root. 
+     * New license contracts should only be created via an LOB root contract and 
+     * this method should thus never be called directly.
      *
      * @param _issuer The address that will be allowed to issue licenses via 
      *                this contract
@@ -371,8 +381,8 @@ contract LicenseContract {
      *                    licenses via this contract. See documentation of 
      *                    instance variable `issuerName` for more information.
      * @param _liability  The liability the issuer guarantees for each issuance
-     * @param _safekeepingPeriod The number of years all documents having to do 
-     *                           with the audit will be kept by the issuer
+     * @param _safekeepingPeriod The number of years all documents related to  
+     *                           the audit will be kept by the issuer
      * @param _issuerSSLCertificate An SSL certificate created for the person or 
      *                              organisation that will issue licenses via 
      *                              this contract. See documentation of instance 
@@ -427,9 +437,9 @@ contract LicenseContract {
     }
 
     /**
-    * Sign this license contract, verifying that the private key of this 
-    * contract is owned by the owner of the private key for 
-    * `issuerSSLCertificate` and that the issuer will comply with the LOB rules.
+    * Sign the license contract, verifying that the private key of this contract
+    * is owned by the owner of the private key for `issuerSSLCertificate`
+    * and that the issuer will comply with the LOB rules.
     * 
     * The signature shall sign the text returned by `certificateText` using the
     * private key belonging to `issuerSSLCertificate`. It is a SHA-256 digest of 
@@ -439,8 +449,8 @@ contract LicenseContract {
     * 
     * Prior to signing the license contract, licenses cannot be issued.
     *
-    * It is not verified on the blockchain that the signature is valid or 
-    * well-formed but this should be done in the wallet.
+    * It is not verified on the blockchain if the signature is valid or 
+    * well-formed due to the high computational cost.
     *
     * The signature cannot be overwritten once it is set.
     *
@@ -460,32 +470,29 @@ contract LicenseContract {
     /**
     * Issue new LOB licenses. The following conditions must be satisfied for 
     * this function to succeed:
-    *  - The issuance fee must be transmitted together with this message
     *  - The function must be called by the issuer
-    *  - The license contract must not be disabled
     *  - The license contract needs to be signed
+    *  - The license contract must not be disabled
+    *  - The issuance fee must be transmitted together with this message
     *  - LOB must not have taken over control for the license contract
     *
-    * It will create a new issuance whose issuance number is returned by the 
-    * function. The event `Issuing` is also fired with the issuance number of 
-    * the newly created issuance.
+    * It will create a new issuance. The event `Issuing` is fired with the 
+    * issuance number of the newly created issuance.
     * For a more detailed description of the parameters see the documentation
     * of the struct `LicenseContractLib.Issuance`.
     * 
-    * @param description A human-readable description of the license type
-    * @param code An unambiguous code for the license type
+    * @param licenseDescription A human-readable description of the license type
+    * @param licenseCode An unambiguous code for the license type
     * @param initialOwnerAddress The address that shall initially own all the 
     *                            licenses
     * @param numLicenses The number of separately tradable licenses to be issued
     * @param auditRemark A free text field containing the result of the license 
     *                    audit
     * @param auditTime The time at which the audit was performed
-    *
-    * @return The issuance number of the newly created issuance
     */
     function issueLicense(
-        string description,
-        string code,
+        string licenseDescription,
+        string licenseCode,
         address initialOwnerAddress,
         uint64 numLicenses,
         string auditRemark,
@@ -494,7 +501,6 @@ contract LicenseContract {
         external
         onlyIssuer
         payable
-        returns (uint256)
     {
         require(!disabled);
         require(managerAddress == address(0));
@@ -502,9 +508,9 @@ contract LicenseContract {
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
         require(msg.value >= issuanceFee);
-        var issuanceNumber = issuances.insert(description, code, auditTime, auditRemark);
+        var issuanceNumber = issuances.insert(licenseDescription, licenseCode, auditTime, auditRemark);
         relevantIssuances[initialOwnerAddress].push(issuanceNumber);
-        return issuances.createInitialLicenses(issuanceNumber, numLicenses, initialOwnerAddress);
+        issuances.createInitialLicenses(issuanceNumber, numLicenses, initialOwnerAddress);
     }
 
 
@@ -512,17 +518,18 @@ contract LicenseContract {
     // Caches
 
     /**
-     * Return the number of issuances relevant for the given owner that can be
-     * retrieved using `relevantIssuances(owner, i)` where 
+     * Determine the number of issuances relevant for the given owner that can 
+     * be retrieved using `relevantIssuances(owner, i)` where 
      * `i < relevantIssuancesCount(owner)`. 
      *
-     * Note that because `relevantIssuances` may contain duplicate and outdated 
-     * entries, the number of actually relevant issuances for this owner may be 
-     * smaller than the number returned by this method.
+     * Note that because `relevantIssuances` is an over-approximation, it may 
+     * contain duplicate and outdated entries. Thus, the number of actually 
+     * relevant issuances for this owner may be smaller than the number returned 
+     * by this method.
      *
      * @param owner The owner for which relevant issuances shall be determined
      *
-     * @return The maximum index `i` that can be used when accessing 
+     * @return An upper bound (exclusive) `i` that can be used when accessing 
      *         `relevantIssuances(owner, i)`
      */
     function relevantIssuancesCount(address owner) external constant returns (uint256) {
@@ -530,14 +537,14 @@ contract LicenseContract {
     }
 
     /**
-     * Return the number of addresses from which `originalOwner` may be able to 
-     * reclaim licenses of issuance `issuanceNumber`. These addresses can be
+     * Determine the number of addresses from which `originalOwner` may be able 
+     * to reclaim licenses of issuance `issuanceNumber`. These addresses can be
      * retrieved using `temporaryLicenseHolders`.
      *
-     * Note that because `temporaryLicenseHolders` may contain duplicate entries 
-     * and is never cleared, the number of addresses `originalOwner` is able to 
-     * reclaim licenses from is likely lower than the count returned by this 
-     * function.
+     * Note that because `temporaryLicenseHolders` is an over-approximation, it 
+     * may contain duplicate entries and is never cleared. Thus, the number of 
+     * addresses `originalOwner` is able to reclaim licenses from is likely 
+     * lower than the count returned by this function.
      *
      * @param issuanceNumber The issuance for which the addresses from which 
      *                       licenses may be reclaimable shall be determined
@@ -551,24 +558,26 @@ contract LicenseContract {
     }
 
     /**
-     * Return the `index`th address from which licenses may be reclaimable by
+     * Retrieve the `index`th address from which licenses may be reclaimable by
      * `originalOwner`. The maximum index can be determined using 
      * `temporaryLicenseHoldersCount`.
      *
      * `temporaryLicenseHolders` is a list of addresses to which licenses have 
-     * been transferred with the right to reclaim them. 
+     * been transferred temporarily by `originalOwner`.
      *
-     * It is an auxiliary list to determine the addresses from which 
-     * licenses may be reclaimed. Whenever `x` has transferred a licenses
-     * to `y` with the right to reclaim it, `y` will be in 
-     * `temporaryLicenseHolders[x]`. The list is  never cleared, thus the 
+     * It is an auxiliary list to quickly determine a superset of the addresses 
+     * from which licenses may be reclaimed while being computationally cheap to
+     * manage.
+     *
+     * Whenever `x` has temporarily transferred a licenses to `y`, `y` will be 
+     * in `temporaryLicenseHolders[x]`. The list is  never cleared, thus the 
      * existence of an address in the list does not guarantee that a reclaim is 
      * possible (e.g. if the licenses has already been reclaimed).
      * Addresses may occur multiple times in the list, since it is only 
      * appended to.
      *
-     * @param issuanceNumber The issuance for which addresses from which
-     *                       licenses may be reclaimable shall be determined
+     * @param issuanceNumber The issuance for which the temporary license 
+     *                       holders shall be determined
      * @param originalOwner The address that would like to reclaim licenses
      * @param index The array index that shall be retrieved. Must be smaller 
      *              than the count returned by
@@ -584,7 +593,7 @@ contract LicenseContract {
     // License transfer
 
     /**
-     * Return the number of issuances stored in the `issuances` instance 
+     * Determine the number of issuances stored in the `issuances` instance 
      * variable.
      *
      * @return The number of elements in the `issuances` instance variable
@@ -595,13 +604,13 @@ contract LicenseContract {
 
     /**
     * Determine the number of licenses of a given issuance owned by `owner` 
-    * including licenses that may be reclaimed by a different address.
+    * including licenses that are only owned temporarily.
     *
     * @param issuanceNumber The issuance for which the number of licenses owned 
     *                       by `owner` shall be determined
     * @param owner The address for which the balance shall be determined
     * 
-    * @return The number of licenses owned by `owner`
+    * @return The number of licenses of this issuance owned by `owner`
     */
     function balance(uint256 issuanceNumber, address owner) external constant returns (uint64) {
         var issuance = issuances[issuanceNumber];
@@ -609,16 +618,15 @@ contract LicenseContract {
     }
 
     /**
-     * Determine the number of licenses of a given issuance owned by `owner` 
-     * but which may be reclaimed by a different address (i.e. excluding 
-     * licenses that are properly owned by `owner`).
+     * Determine the number of licenses of a given issuance temporarily owned by 
+     * `owner` and which thus may be reclaimed by a different address (i.e. all 
+     * licenses that are not properly owned by `owner`).
      *
      * @param issuanceNumber The issuance for which the balance shall be 
      *                       determined
      * @param owner The address for which the balance shall be determined
      * 
-     * @return The number of licenses owned by `owner` but which may be 
-     *         reclaimed by someone else
+     * @return The number of licenses temporarily owned by `owner`
      */
     function temporaryBalance(uint256 issuanceNumber, address owner) external constant returns (uint64) {
         return issuances[issuanceNumber].temporaryBalance[owner];
@@ -630,12 +638,11 @@ contract LicenseContract {
      *
      * @param issuanceNumber The issuance for which the balance shall be
      *                       determined
-     * @param owner The address that owns the licenses but from which the 
-     *              licenses may be reclaimed by `reclaimer`
+     * @param owner The address that temporarily owns the licenses
      * @param reclaimer The address that is allowed to reclaim the licenses from
      *                  `owner`
      * 
-     * @return The number of licenses owned by `owner` but which may be 
+     * @return The number of licenses temporarily owned by `owner` that may be 
      *         reclaimed by `reclaimer`
      */
     function temporaryBalanceReclaimableBy(uint256 issuanceNumber, address owner, address reclaimer) external constant returns (uint64) {
@@ -690,14 +697,14 @@ contract LicenseContract {
     }
 
     /**
-     * The sender reclaims `amount` licenses it has previously temporarily 
-     * transferred to `from` using `transferTemporarily`, deducting them from 
-     * `from`'s temporary balance and adding them to the sender's proper balance 
-     * again.
+     * Reclaim `amount` licenses licenses that were previously temporarily 
+     * transferred from the sender to `from` using `transferTemporarily`.
+     * This dedcucts them from `from`'s temporary balance and adds them to the 
+     * sender's proper balance 
      *
      * This requires that:
      *  - The sender previously temporarily transferred at least `amount` 
-     *    licenses to `from` with the right to reclaim them
+     *    licenses to `from`
      *  - The sender is different from `from`
      *  - The issuance has not been revoked
      *
@@ -748,12 +755,12 @@ contract LicenseContract {
     }
 
     /**
-    * Withdraw Ether that have been collected as fees from the license contract
-    * to the address `recipient`. This can only be initiated by the LOB root.
-    *
-    * @param amount The amount that shall be withdrawn in Wei
-    * @param recipient The address that shall receive the withdrawn Ether
-    */
+     * Withdraw Ether that have been collected as fees from the license contract
+     * to the address `recipient`. This can only be initiated by the LOB root.
+     *
+     * @param amount The amount that shall be withdrawn in Wei
+     * @param recipient The address that shall receive the withdrawn Ether
+     */
     function withdraw(uint256 amount, address recipient) onlyLOBRoot external {
         recipient.transfer(amount);
     }
@@ -771,12 +778,11 @@ contract LicenseContract {
     }
 
     /**
-     * This allows the LOB root to take over management for this license 
-     * contractto fix any mistakes or clean the contract up in case the issuer 
-     * has lostaccess to his address. It will set the contract into a special 
-     * management mode that disallows any management action by the issuer and 
-     * grants the management address the right to revoke issuances and disable 
-     * the license contract.
+     * Take over control of this license contract to fix any mistakes or clean 
+     * the contract up in case the issuer has lost access to his address. 
+     * It will set the contract into a special management mode that disallows 
+     * any management action by the issuer and grants the management address the 
+     * right to revoke issuances and disable the license contract. 
      *
      * Setting the manager address back to `0x0` passes control back to the 
      * issuer.
