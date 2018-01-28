@@ -53,7 +53,7 @@ contract RootContract {
      * This field will always be available in all future versions of the root 
      * contract.
      */
-    uint16 public version = 5;
+    uint16 public version = 1;
 
     /**
      * Fired when a new license contract is created.
