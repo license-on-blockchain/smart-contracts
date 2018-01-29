@@ -35,9 +35,9 @@ contract RootContract {
     bool public disabled;
 
     /**
-     * The issuance fee that will be set on each newly created license contract 
-     * and which will need to be paid for every issuance on the license 
-     * contract. In Wei.
+     * The issuance fee in Wei that will be set on each newly created license 
+     * contract and which will need to be paid for every issuance on the license 
+     * contract.
      */
     uint128 public defaultIssuanceFee;
 
@@ -71,7 +71,7 @@ contract RootContract {
     // Constructor
 
     /**
-     * Creates a new root contract whose owner is set to the message sender.
+     * Create a new root contract whose owner is set to the message sender.
      */
     function RootContract() public {
         owner = msg.sender;
@@ -81,8 +81,10 @@ contract RootContract {
 
     /**
      * Initiate the creation of a new license contract tailored to the specified
-     * issuer. Once this call has be executed, the newly created license 
-     * contract needs to be signed before it can issue licenses.
+     * issuer. 
+     *
+     * Once this call has be executed, the newly created license  contract needs 
+     * to be signed before it can issue licenses.
      *
      * This contract is the LOB root of the license contract and the invoker of 
      * this function the license contract's issuer.
@@ -124,8 +126,10 @@ contract RootContract {
     // Managing fees
 
     /**
-     * Set the issuance fee of a license contract. See documentation of 
-     * `LicenseContract.setIssuanceFee` for detailed information.
+     * Set the issuance fee of a license contract. 
+     * 
+     * See documentation of `LicenseContract.setIssuanceFee` for detailed 
+     * information.
      *
      * This can only be invoked by the root contract's owner.
      *
@@ -200,7 +204,7 @@ contract RootContract {
     }
 
     /**
-     * Take over control of a license contract, disallowing any manamgement 
+     * Take over control of a license contract, disallowing any management 
      * actions by the issuer and allowing the manager to revoke issuances and
      * disable the license contract.
      * 
