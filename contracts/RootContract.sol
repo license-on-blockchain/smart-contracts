@@ -83,8 +83,8 @@ contract RootContract {
      * Initiate the creation of a new license contract tailored to the specified
      * issuer. 
      *
-     * Once this call has be executed, the newly created license  contract needs 
-     * to be signed before it can issue licenses.
+     * Once this call has been executed, the newly created license  contract 
+     * needs to be signed before it can issue licenses.
      *
      * This contract is the LOB root of the license contract and the invoker of 
      * this function the license contract's issuer.
@@ -97,7 +97,7 @@ contract RootContract {
      *                   licenses
      * @param liability A free text in which the issuer can describe the 
      *                  liability he will assume for all of his issuances
-     * @param safekeepingPeriod The amount of years all documents related to the 
+     * @param safekeepingPeriod The number of years all documents related to the 
      *                          audit will be kept by the issuer
      * @param issuerSSLCertificate The SSL certificate that will be used to sign 
      *                             the license contract. See the license 
@@ -167,8 +167,8 @@ contract RootContract {
      * @param licenseContractAddress The address of the license contract from 
      *                               which collected fees shall be withdrawn
      * @param amount The amount of Wei that shall be withdrawn from the license 
-     *               contract. Needs to be lower than the amount of fees 
-     *               collected by the license contract
+     *               contract. Needs to be less than the fees collected by the 
+     *               license contract
      * @param recipient The address to which the withdrawn Wei should be sent
      */
     function withdrawFromLicenseContract(address licenseContractAddress, uint256 amount, address recipient) external onlyOwner {

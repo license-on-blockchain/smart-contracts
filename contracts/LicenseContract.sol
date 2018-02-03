@@ -35,7 +35,7 @@ contract LicenseContract {
     /**
      * A human readable name that unambiguously describes the person or 
      * organisation issuing licenses via this contract. 
-     * This should to the most possible extend match the name in the 
+     * This should to the most possible extent match the name in the 
      * `issuerSSLCertificate`. Ideally, `issuerSSLCertificate` is a Class 3 EV 
      * certificate and issued to exactly this name. Should
      * `issuerSSLCertificate` reference a URL, this URL should obviously refer 
@@ -72,7 +72,7 @@ contract LicenseContract {
     bytes public issuerSSLCertificate;
 
     /**
-     * The fee in Wei that is required to be payed for every license issuance 
+     * The fee in Wei that is required to be paid for every license issuance 
      * under this license contract. The fees are collected in the license 
      * contract and may be withdrawn by the LOB root.
      */
@@ -80,7 +80,7 @@ contract LicenseContract {
 
     /**
      * The LOB root address that is allowed to set the issuance fee, withdraw 
-     * fees and take over control for this license contract. 
+     * fees and take over control of this license contract. 
      * Equal to the creator of this contract.
      */
     address public lobRoot;
@@ -131,7 +131,7 @@ contract LicenseContract {
     mapping(address => uint256[]) public relevantIssuances;
 
     /**
-     * If the LOB root has taken over control for this license contract, this is
+     * If the LOB root has taken over control of this license contract, this is
      * the address that now manages the contract and thus has the right to 
      * revoke licenses and disable the contract.
      *
@@ -204,7 +204,7 @@ contract LicenseContract {
     event Disabling();
 
     /**
-     * Fired when LOB takes over control for this license contract.
+     * Fired when LOB takes over control of this license contract.
      *
      * @param managerAddress The address that now manages the contract. `0x0` if
      *                       control is passed back to the issuer.
@@ -319,7 +319,7 @@ contract LicenseContract {
     *  - The license contract needs to be signed
     *  - The license contract must not be disabled
     *  - The issuance fee must be transmitted together with this message
-    *  - LOB must not have taken over control for the license contract
+    *  - LOB must not have taken over control of the license contract
     *
     * It will create a new issuance. The event `Issuing` is fired with the 
     * issuance number of the newly created issuance.
@@ -417,7 +417,7 @@ contract LicenseContract {
      * in `temporaryLicenseHolders[x]`. The list is  never cleared, thus the 
      * existence of an address in the list does not guarantee that a reclaim is 
      * possible (e.g. if the licenses has already been reclaimed).
-     * Addresses may occur multiple times in the list, since it is only 
+     * Addresses may occur multiple times in the list since it is only 
      * appended to.
      *
      * @param issuanceNumber The issuance for which the temporary license 
@@ -623,7 +623,7 @@ contract LicenseContract {
      * This action cannot be undone. 
      *
      * It can only be performed by the issuer or the manager if LOB has taken 
-     * over control for this license contract.
+     * over control of this license contract.
      */
     function disable() onlyCurrentManager external {
         Disabling();
