@@ -7,7 +7,7 @@ Promise.prototype.thenSolidityThrow = function(description) {
   return this.then(function() {
     assert(false, description);
   }).catch(function(error) {
-    assert(error.toString().indexOf("invalid opcode") != -1, "Solidity should throw (calling an invalid opcode), got error: " + error.toString());
+    assert(error.toString().indexOf("invalid opcode") != -1 || error.toString().indexOf("revert") != -1, "Solidity should throw (calling an invalid opcode or revert), got error: " + error.toString());
   });
 };
 
