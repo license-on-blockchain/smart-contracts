@@ -1,13 +1,19 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 library StringUtils {
-    function concat(string _s1, string _s2, string _s3, string _s4, string _s5) internal pure returns (string){
+
+    function concat(
+        string _s1, string _s2,
+        string _s3, string _s4,
+        string _s5
+    ) internal pure returns (string) {
         bytes memory _b1 = bytes(_s1);
         bytes memory _b2 = bytes(_s2);
         bytes memory _b3 = bytes(_s3);
         bytes memory _b4 = bytes(_s4);
         bytes memory _b5 = bytes(_s5);
-        string memory concatString = new string(_b1.length + _b2.length + _b3.length + _b4.length + _b5.length);
+        string memory concatString = new string(_b1.length +
+            _b2.length + _b3.length + _b4.length + _b5.length);
         bytes memory concatBytes = bytes(concatString);
         uint k = 0;
         uint i;
@@ -19,15 +25,23 @@ library StringUtils {
         return string(concatBytes);
     }
 
-    function concat(string _s1, string _s2, string _s3, string _s4) internal pure returns (string){
+    function concat(
+        string _s1, string _s2,
+        string _s3, string _s4
+    ) internal pure returns (string) {
         return concat(_s1, _s2, _s3, _s4, "");
     }
 
-    function concat(string _s1, string _s2, string _s3) internal pure returns (string){
+    function concat(
+        string _s1, string _s2,
+        string _s3
+    ) internal pure returns (string) {
         return concat(_s1, _s2, _s3, "", "");
     }
 
-    function concat(string _s1, string _s2) internal pure returns (string){
+    function concat(
+        string _s1, string _s2
+    ) internal pure returns (string) {
         return concat(_s1, _s2, "", "", "");
     }
 
