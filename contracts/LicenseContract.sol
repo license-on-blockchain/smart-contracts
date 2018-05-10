@@ -28,7 +28,8 @@ contract LicenseContract {
      * `0x0` or the message is sent by `managerAddress` if it is not `0x0`.
      */
     modifier onlyCurrentManager() {
-        require((msg.sender == issuer && managerAddress == address(0)) || msg.sender == managerAddress);
+        require((msg.sender == issuer && managerAddress == address(0)) ||
+                 msg.sender == managerAddress);
         _;
     }
 
@@ -163,7 +164,11 @@ contract LicenseContract {
      * @param temporary Whether or not the licenses have been transferred 
      *                  temporarily and `from` is allowed to reclaim them
      */
-    event Transfer(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount, bool temporary);
+    event Transfer(uint256 indexed issuanceNumber,
+                   address indexed from,
+                   address indexed to,
+                   uint64 amount,
+                   bool temporary);
 
     /**
      * Fired when an address reclaims licenses that were previously transferred
@@ -174,7 +179,10 @@ contract LicenseContract {
      * @param to The address that now reclaims the licenses
      * @param amount The number of licenses `to` reclaims from `from`
      */
-    event Reclaim(uint256 indexed issuanceNumber, address indexed from, address indexed to, uint64 amount);
+    event Reclaim(uint256 indexed issuanceNumber,
+                  address indexed from,
+                  address indexed to,
+                  uint64 amount);
 
     /**
      * Fired when an issuance gets revoked.
@@ -253,7 +261,7 @@ contract LicenseContract {
         lobRoot = msg.sender;
 
         issuanceFee = _issuanceFee;
-        IssuanceFeeChange(_issuanceFee);
+        emit IssuanceFeeChange(_issuanceFee);
     }
 
     /**
@@ -304,7 +312,7 @@ contract LicenseContract {
     function sign(bytes _signature) onlyIssuer external {
         // Don't allow resigning of the contract
         require(signature.length == 0);
-        Signing();
+        emit Signing();
         signature = _signature;
     }
 
@@ -354,9 +362,16 @@ contract LicenseContract {
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
         require(msg.value >= issuanceFee);
-        var issuanceNumber = issuances.insert(licenseDescription, licenseCode, auditTime, auditRemark);
+        var issuanceNumber = issuances.insert(licenseDescription,
+                                              licenseCode,
+                                              auditTime,
+                                              auditRemark);
+
         relevantIssuances[initialOwnerAddress].push(issuanceNumber);
-        issuances.createInitialLicenses(issuanceNumber, numLicenses, initialOwnerAddress);
+        issuances.createInitialLicenses(issuanceNumber,
+                                        numLicenses,
+                                        initialOwnerAddress);
+        // assert?
     }
 
 
@@ -378,7 +393,9 @@ contract LicenseContract {
      * @return An upper bound (exclusive) `i` that can be used when accessing 
      *         `relevantIssuances(owner, i)`
      */
-    function relevantIssuancesCount(address owner) external constant returns (uint256) {
+    function relevantIssuancesCount(
+        address owner
+    ) external constant returns (uint256) {
         return relevantIssuances[owner].length;
     }
 
@@ -399,8 +416,12 @@ contract LicenseContract {
      * @return An upper bound (exclusive) on the index for 
      *         `temporaryLicenseHolders(issuanceNumber, originalOwner)`
      */
-    function temporaryLicenseHoldersCount(uint256 issuanceNumber, address originalOwner) external constant returns (uint256) {
-        return issuances[issuanceNumber].temporaryLicenseHolders[originalOwner].length;
+    function temporaryLicenseHoldersCount(
+        uint256 issuanceNumber,
+        address originalOwner
+    ) external constant returns (uint256) {
+        return issuances[issuanceNumber]
+               .temporaryLicenseHolders[originalOwner].length;
     }
 
     /**
@@ -430,8 +451,13 @@ contract LicenseContract {
      * @return An address from which `originalOwner` may be able to reclaim 
      *         licenses of the given issuance number
      */
-    function temporaryLicenseHolders(uint256 issuanceNumber, address originalOwner, uint256 index) external constant returns (address) {
-        return issuances[issuanceNumber].temporaryLicenseHolders[originalOwner][index];
+    function temporaryLicenseHolders(
+        uint256 issuanceNumber,
+        address originalOwner,
+        uint256 index
+    ) external constant returns (address) {
+        return issuances[issuanceNumber]
+               .temporaryLicenseHolders[originalOwner][index];
     }
 
     // License transfer
@@ -456,9 +482,13 @@ contract LicenseContract {
     * 
     * @return The number of licenses of this issuance owned by `owner`
     */
-    function balance(uint256 issuanceNumber, address owner) external constant returns (uint64) {
+    function balance(
+        uint256 issuanceNumber,
+        address owner
+    ) external constant returns (uint64) {
         var issuance = issuances[issuanceNumber];
-        return issuance.balance[owner][owner] + issuance.temporaryBalance[owner];
+        return issuance.balance[owner][owner] +
+               issuance.temporaryBalance[owner];
     }
 
     /**
@@ -472,7 +502,10 @@ contract LicenseContract {
      * 
      * @return The number of licenses temporarily owned by `owner`
      */
-    function temporaryBalance(uint256 issuanceNumber, address owner) external constant returns (uint64) {
+    function temporaryBalance(
+        uint256 issuanceNumber,
+        address owner
+    ) external constant returns (uint64) {
         return issuances[issuanceNumber].temporaryBalance[owner];
     }
 
@@ -489,7 +522,11 @@ contract LicenseContract {
      * @return The number of licenses temporarily owned by `owner` that may be 
      *         reclaimed by `reclaimer`
      */
-    function temporaryBalanceReclaimableBy(uint256 issuanceNumber, address owner, address reclaimer) external constant returns (uint64) {
+    function temporaryBalanceReclaimableBy(
+        uint256 issuanceNumber,
+        address owner,
+        address reclaimer
+    ) external constant returns (uint64) {
         return issuances[issuanceNumber].balance[owner][reclaimer];
     }
 
@@ -510,7 +547,11 @@ contract LicenseContract {
      * @param to The address the licenses shall be transferred to
      * @param amount The number of licenses that shall be transferred
      */
-    function transfer(uint256 issuanceNumber, address to, uint64 amount) external {
+    function transfer(
+        uint256 issuanceNumber,
+        address to,
+        uint64 amount
+    ) external {
         relevantIssuances[to].push(issuanceNumber);
         issuances.transferFromMessageSender(issuanceNumber, to, amount);
     }
@@ -535,9 +576,15 @@ contract LicenseContract {
      * @param to The address the licenses shall be transferred to
      * @param amount The number of licenses that shall be transferred
      */
-    function transferTemporarily(uint256 issuanceNumber, address to, uint64 amount) external {
+    function transferTemporarily(
+        uint256 issuanceNumber,
+        address to,
+        uint64 amount
+    ) external {
         relevantIssuances[to].push(issuanceNumber);
-        issuances.transferTemporarilyFromMessageSender(issuanceNumber, to, amount);
+        issuances.transferTemporarilyFromMessageSender(issuanceNumber,
+                                                       to,
+                                                       amount);
     }
 
     /**
@@ -560,7 +607,11 @@ contract LicenseContract {
      * @param from The address from which licenses shall be reclaimed
      * @param amount The number of licenses that shall be reclaimed
      */
-    function reclaim(uint256 issuanceNumber, address from, uint64 amount) external {
+    function reclaim(
+        uint256 issuanceNumber,
+        address from,
+        uint64 amount
+    ) external {
         issuances.reclaimToSender(issuanceNumber, from, amount);
     }
 
@@ -579,11 +630,15 @@ contract LicenseContract {
      * @param revocationReason A free text explaining why the issuance is 
      *                         revoked
      */
-    function revoke(uint256 issuanceNumber, string revocationReason) external {
-        require((msg.sender == issuer && managerAddress == address(0) && !disabled) || msg.sender == managerAddress);
+    function revoke(
+        uint256 issuanceNumber,
+        string revocationReason
+    ) external {
+        require((msg.sender == issuer && managerAddress == address(0) &&
+                 !disabled) || msg.sender == managerAddress);
         issuances[issuanceNumber].revoked = true;
         issuances[issuanceNumber].revocationReason = revocationReason;
-        Revoke(issuanceNumber);
+        emit Revoke(issuanceNumber);
     }
 
 
@@ -599,7 +654,7 @@ contract LicenseContract {
      */
     function setIssuanceFee(uint128 newFee) onlyLOBRoot external {
         issuanceFee = newFee;
-        IssuanceFeeChange(newFee);
+        emit IssuanceFeeChange(newFee);
     }
 
     /**
@@ -611,7 +666,10 @@ contract LicenseContract {
      * @param amount The amount that shall be withdrawn in Wei
      * @param recipient The address that shall receive the withdrawn Ether
      */
-    function withdraw(uint256 amount, address recipient) onlyLOBRoot external {
+    function withdraw(
+        uint256 amount,
+        address recipient
+    ) onlyLOBRoot external {
         recipient.transfer(amount);
     }
 
@@ -626,7 +684,7 @@ contract LicenseContract {
      * over control of this license contract.
      */
     function disable() onlyCurrentManager external {
-        Disabling();
+        emit Disabling();
         disabled = true;
     }
 
@@ -646,8 +704,10 @@ contract LicenseContract {
      * @param _managerAddress The address that will be allowed to perform 
      *                        management actions on this license contract.
      */
-    function takeOverManagementControl(address _managerAddress) onlyLOBRoot external {
+    function takeOverManagementControl(
+        address _managerAddress
+    ) onlyLOBRoot external {
         managerAddress = _managerAddress;
-        ManagementControlTakeOver(_managerAddress);
+        emit ManagementControlTakeOver(_managerAddress);
     }
 }
