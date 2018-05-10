@@ -1,8 +1,10 @@
 # License on Blockchain – Smart Contracts
 
-The Smart Contracts that back the [License on Blockchain](https://github.com/organizations/license-on-blockchain) framework. 
+The Smart Contracts that back the [License on Blockchain](https://github.com/license-on-blockchain) framework. 
 
 Please refer to the [whitepaper](https://github.com/licence-on-blockchain/whitepaper) for an overview of the smart contracts and how they interact with each other.
+
+Fork for examining and testing.
 
 ## Testing
 
