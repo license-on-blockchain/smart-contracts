@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./StringUtils.sol";
 import "./LicenseContractLib.sol";
@@ -236,7 +236,7 @@ contract LicenseContract {
      * @param _issuanceFee The fee that is required to be paid for each license 
      *                     issuance in Wei. May be changed later.
      */
-    function LicenseContract(
+    constructor(
         address _issuer, 
         string _issuerName, 
         string _liability,

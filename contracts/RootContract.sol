@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.23;
 
 import "./LicenseContract.sol";
 
@@ -73,7 +73,7 @@ contract RootContract {
     /**
      * Create a new root contract whose owner is set to the message sender.
      */
-    function RootContract() public {
+    constructor() public {
         owner = msg.sender;
     }
 
