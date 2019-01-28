@@ -270,7 +270,7 @@ contract("License issuing", function(accounts) {
       licenseContract = instance;
       return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     }).then(function(transaction) {
-      assert.transactionCost(transaction, 207157, "license issuing");
+      assert.transactionCost(transaction, 207646, "license issuing");
     }).then(function() {
       return licenseContract.issuancesCount();
     }).then(function(issuancesCount) {
@@ -371,7 +371,7 @@ contract("License transfer", function(accounts) {
       return licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 79330, "transfer");
+      assert.transactionCost(transaction, 79000, "transfer");
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
@@ -456,7 +456,7 @@ contract("Temporary license transfer", function(accounts) {
       return licenseContract.transferTemporarily(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 141431, "transferTemporarily");
+      assert.transactionCost(transaction, 140709, "transferTemporarily");
     })
     .thenBalance(0, accounts.firstOwner, 50)
     .thenBalance(0, accounts.secondOwner, 20)
@@ -477,7 +477,7 @@ contract("Temporary license transfer", function(accounts) {
       return instance.reclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 22864, "reclaim");
+      assert.transactionCost(transaction, 22943, "reclaim");
     })
     .thenBalance(0, accounts.firstOwner, 70)
     .thenBalance(0, accounts.secondOwner, 0)

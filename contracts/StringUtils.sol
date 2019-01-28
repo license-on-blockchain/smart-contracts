@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
 library StringUtils {
-    function concat(string _s1, string _s2, string _s3, string _s4, string _s5) internal pure returns (string){
+    function concat(string memory _s1, string memory _s2, string memory _s3, string memory _s4, string memory _s5) internal pure returns (string memory) {
         bytes memory _b1 = bytes(_s1);
         bytes memory _b2 = bytes(_s2);
         bytes memory _b3 = bytes(_s3);
@@ -19,19 +19,19 @@ library StringUtils {
         return string(concatBytes);
     }
 
-    function concat(string _s1, string _s2, string _s3, string _s4) internal pure returns (string){
+    function concat(string memory _s1, string memory _s2, string memory _s3, string memory _s4) internal pure returns (string memory) {
         return concat(_s1, _s2, _s3, _s4, "");
     }
 
-    function concat(string _s1, string _s2, string _s3) internal pure returns (string){
+    function concat(string memory _s1, string memory _s2, string memory _s3) internal pure returns (string memory) {
         return concat(_s1, _s2, _s3, "", "");
     }
 
-    function concat(string _s1, string _s2) internal pure returns (string){
+    function concat(string memory _s1, string memory _s2) internal pure returns (string memory) {
         return concat(_s1, _s2, "", "", "");
     }
 
-    function addressToString(address x) internal pure returns (string) {
+    function addressToString(address x) internal pure returns (string memory) {
         bytes memory s = new bytes(40);
         for (uint i = 0; i < 20; i++) {
             byte b = byte(uint8(uint(x) / (2**(8*(19 - i)))));
@@ -44,18 +44,18 @@ library StringUtils {
     }
 
     function char(byte b) private pure returns (byte c) {
-        if (b < 10) return byte(uint8(b) + 0x30);
+        if (b < 0x0a) return byte(uint8(b) + 0x30);
         else return byte(uint8(b) + 0x57);
     }
 
-    function uintToString(uint v) internal pure returns (string) {
+    function uintToString(uint v) internal pure returns (string memory) {
         uint maxlength = 78;
         bytes memory reversed = new bytes(maxlength);
         uint i = 0;
         while (v != 0) {
             uint remainder = v % 10;
             v = v / 10;
-            reversed[i++] = byte(48 + remainder);
+            reversed[i++] = byte(48 + uint8(remainder));
         }
         bytes memory s = new bytes(i);
         for (uint j = 0; j < i; j++) {

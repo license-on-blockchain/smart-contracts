@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.5.0;
 
 import "./LicenseContract.sol";
 
@@ -44,7 +44,7 @@ contract RootContract {
     /** 
      * The addresses of all license contracts created by this root contract.
      */
-    address[] public licenseContracts;
+    LicenseContract[] public licenseContracts;
 
     /**
      * A version number used to determine the correct ABI for license contracts 
@@ -53,7 +53,7 @@ contract RootContract {
      * This field will always be available in all future versions of the root 
      * contract.
      */
-    uint16 public version = 1;
+    uint16 public version = 2;
 
     /**
      * Fired when a new license contract is created.
@@ -61,7 +61,7 @@ contract RootContract {
      * @param licenseContractAddress The address of the newly created license 
      *                               contract
      */
-    event LicenseContractCreation(address licenseContractAddress);
+    event LicenseContractCreation(LicenseContract licenseContractAddress);
 
     /**
      * Fired when the root contract gets disabled.
@@ -73,7 +73,7 @@ contract RootContract {
     /**
      * Create a new root contract whose owner is set to the message sender.
      */
-    function RootContract() public {
+    constructor() public {
         owner = msg.sender;
     }
 
@@ -104,10 +104,10 @@ contract RootContract {
      *                             contract's documentation on the requirements 
      *                             of this certificate
      */
-    function createLicenseContract(string issuerName, string liability, uint8 safekeepingPeriod, bytes issuerSSLCertificate) external notDisabled returns (address) {
-        var licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee);
+    function createLicenseContract(string calldata issuerName, string calldata liability, uint8 safekeepingPeriod, bytes calldata issuerSSLCertificate) external notDisabled returns (LicenseContract) {
+        LicenseContract licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee);
         licenseContracts.push(licenseContractAddress);
-        LicenseContractCreation(licenseContractAddress);
+        emit LicenseContractCreation(licenseContractAddress);
         return licenseContractAddress;
     }
 
@@ -119,7 +119,7 @@ contract RootContract {
      *
      * @return The number of elements in the `liceseContract` variable
      */
-    function licenseContractCount() external constant returns (uint256) {
+    function licenseContractCount() external view returns (uint256) {
         return licenseContracts.length;
     }
     
@@ -171,7 +171,7 @@ contract RootContract {
      *               license contract
      * @param recipient The address to which the withdrawn Wei should be sent
      */
-    function withdrawFromLicenseContract(address licenseContractAddress, uint256 amount, address recipient) external onlyOwner {
+    function withdrawFromLicenseContract(address licenseContractAddress, uint256 amount, address payable recipient) external onlyOwner {
         LicenseContract(licenseContractAddress).withdraw(amount, recipient);
     }
 
@@ -200,7 +200,7 @@ contract RootContract {
      */
     function disable() external onlyOwner {
         disabled = true;
-        Disabling();
+        emit Disabling();
     }
 
     /**

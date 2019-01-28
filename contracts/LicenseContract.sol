@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
 import "./StringUtils.sol";
 import "./LicenseContractLib.sol";
@@ -236,12 +236,12 @@ contract LicenseContract {
      * @param _issuanceFee The fee that is required to be paid for each license 
      *                     issuance in Wei. May be changed later.
      */
-    function LicenseContract(
+    constructor(
         address _issuer, 
-        string _issuerName, 
-        string _liability,
+        string memory _issuerName, 
+        string memory _liability,
         uint8 _safekeepingPeriod,
-        bytes _issuerSSLCertificate,
+        bytes memory _issuerSSLCertificate,
         uint128 _issuanceFee
     ) public {
         issuer = _issuer;
@@ -253,7 +253,7 @@ contract LicenseContract {
         lobRoot = msg.sender;
 
         issuanceFee = _issuanceFee;
-        IssuanceFeeChange(_issuanceFee);
+        emit IssuanceFeeChange(_issuanceFee);
     }
 
     /**
@@ -266,12 +266,12 @@ contract LicenseContract {
      * @return The certificate text template with placeholders instantiated by 
      *         the given parameters
      */
-    function certificateText() external constant returns (string) {
-        var s = StringUtils.concat(
+    function certificateText() external view returns (string memory) {
+        string memory s = StringUtils.concat(
             "Wir, ",
             issuerName,
             ", erklären hiermit,\n\ndass wir unter dem Ethereum Smart Contract mit der Ethereum-Adresse „",
-            StringUtils.addressToString(this),
+            StringUtils.addressToString(address(this)),
             "“ (nachfolgend „LOB-License-Contract“ genannt) Software-Lizenzbescheinigungen gemäß dem Verfahren der License-On-Blockchain Foundation („LOB-Verfahren“) in Version 1 ausstellen.\nEine detaillierte Spezifikation des Verfahrens kann unter der URL https://github.com/license-on-blockchain/whitepaper/releases/download/version-1/Whitepaper.pdf abgerufen werden. Das Dokument hat den SHA-256 Hashwert f027e9ceba595597e02e48aa5fa129a5c7b9f7b1c2f961dc0112f78440c94763.\n\nGemäß diesem LOB-Verfahren unterwerfen wir uns insbesondere folgenden Obliegenheiten:\n1. Wir werden Software-Lizenzbescheinigungen nur ausstellen, wenn unser Prüfung ergeben hat, dass \n  a) die Lizenzen ursprünglich zur dauerhaften Nutzung im Bereich der EU verkauft wurden \n  b) die Lizenzen zum Zeitpunkt des Verkaufs an den Lizenzinhaber nicht mehr verwendet wurden oder anderweitig installiert bzw. im Einsatz waren\n  c) über diese Lizenzen nicht zwischenzeitlich anderweitig verfügt und\n  d) keine weitere Lizenzbestätigung bei einem anderen Auditor – nach welchem Verfahren auch immer – angefordert wurde.\n2. Wir werden uns von den Empfängern unserer Lizenzbescheinigungen schriftlich und nachweisbar wortwörtlich zusichern lassen: „Ich werde eine Weitergabe der hiermit bescheinigten Lizenz(en) auf dem License Contract durch dafür vorgesehenen Funktionen dokumentieren. Soll die Übertragung außerhalb des LOB-Verfahrens erfolgen, werde ich zuvor die Bescheinigung der Lizenz durch Übertragung der Lizenz an die Pseudo-Adresse ‚0x0000000000000000000000000000000000000000‘ terminieren. Dem Folgeerwerber werde ich eine gleichlautende Obliegenheit unter Verwendung des Wortlauts dieses Absatzes auferlegen.“\n3. Wir halten unsere Lizenzbescheinigung auch gegenüber jedem aufrecht, dem eine oder mehrere mit dieser Lizenzbescheinigung bestätigte Lizenzen übertragen werden, sofern\n  a) diese Übertragung innerhalb dieses LOB-License-Contracts mithilfe der Funktion „transfer“ oder „transferTemporarily“ dokumentiert wurde und\n  b) der Empfänger der Transaktion sich ebenfalls der o.g. Obliegenheit zur Dokumentation weiterer Veräußerungen auf der Blockchain unterworfen hat.\n\nUns vorgelegte Belege und Kaufnachweise zu den von uns bescheinigten Lizenzen werden bei uns für die Dauer von ");
         s = StringUtils.concat(
             s,
@@ -301,10 +301,10 @@ contract LicenseContract {
     *
     * @param _signature The signature with which to sign the license contract
     */
-    function sign(bytes _signature) onlyIssuer external {
+    function sign(bytes calldata _signature) onlyIssuer external {
         // Don't allow resigning of the contract
         require(signature.length == 0);
-        Signing();
+        emit Signing();
         signature = _signature;
     }
 
@@ -337,11 +337,11 @@ contract LicenseContract {
     * @param auditTime The time at which the audit was performed
     */
     function issueLicense(
-        string licenseDescription,
-        string licenseCode,
+        string calldata licenseDescription,
+        string calldata licenseCode,
         address initialOwnerAddress,
         uint64 numLicenses,
-        string auditRemark,
+        string calldata auditRemark,
         uint32 auditTime
     )
         external
@@ -354,7 +354,7 @@ contract LicenseContract {
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
         require(msg.value >= issuanceFee);
-        var issuanceNumber = issuances.insert(licenseDescription, licenseCode, auditTime, auditRemark);
+        uint issuanceNumber = issuances.insert(licenseDescription, licenseCode, auditTime, auditRemark);
         relevantIssuances[initialOwnerAddress].push(issuanceNumber);
         issuances.createInitialLicenses(issuanceNumber, numLicenses, initialOwnerAddress);
     }
@@ -378,7 +378,7 @@ contract LicenseContract {
      * @return An upper bound (exclusive) `i` that can be used when accessing 
      *         `relevantIssuances(owner, i)`
      */
-    function relevantIssuancesCount(address owner) external constant returns (uint256) {
+    function relevantIssuancesCount(address owner) external view returns (uint256) {
         return relevantIssuances[owner].length;
     }
 
@@ -399,7 +399,7 @@ contract LicenseContract {
      * @return An upper bound (exclusive) on the index for 
      *         `temporaryLicenseHolders(issuanceNumber, originalOwner)`
      */
-    function temporaryLicenseHoldersCount(uint256 issuanceNumber, address originalOwner) external constant returns (uint256) {
+    function temporaryLicenseHoldersCount(uint256 issuanceNumber, address originalOwner) external view returns (uint256) {
         return issuances[issuanceNumber].temporaryLicenseHolders[originalOwner].length;
     }
 
@@ -430,7 +430,7 @@ contract LicenseContract {
      * @return An address from which `originalOwner` may be able to reclaim 
      *         licenses of the given issuance number
      */
-    function temporaryLicenseHolders(uint256 issuanceNumber, address originalOwner, uint256 index) external constant returns (address) {
+    function temporaryLicenseHolders(uint256 issuanceNumber, address originalOwner, uint256 index) external view returns (address) {
         return issuances[issuanceNumber].temporaryLicenseHolders[originalOwner][index];
     }
 
@@ -442,7 +442,7 @@ contract LicenseContract {
      *
      * @return The number of elements in the `issuances` instance variable
      */
-    function issuancesCount() external constant returns (uint256) {
+    function issuancesCount() external view returns (uint256) {
         return issuances.length;
     }
 
@@ -456,8 +456,8 @@ contract LicenseContract {
     * 
     * @return The number of licenses of this issuance owned by `owner`
     */
-    function balance(uint256 issuanceNumber, address owner) external constant returns (uint64) {
-        var issuance = issuances[issuanceNumber];
+    function balance(uint256 issuanceNumber, address owner) external view returns (uint64) {
+        LicenseContractLib.Issuance storage issuance = issuances[issuanceNumber];
         return issuance.balance[owner][owner] + issuance.temporaryBalance[owner];
     }
 
@@ -472,7 +472,7 @@ contract LicenseContract {
      * 
      * @return The number of licenses temporarily owned by `owner`
      */
-    function temporaryBalance(uint256 issuanceNumber, address owner) external constant returns (uint64) {
+    function temporaryBalance(uint256 issuanceNumber, address owner) external view returns (uint64) {
         return issuances[issuanceNumber].temporaryBalance[owner];
     }
 
@@ -489,7 +489,7 @@ contract LicenseContract {
      * @return The number of licenses temporarily owned by `owner` that may be 
      *         reclaimed by `reclaimer`
      */
-    function temporaryBalanceReclaimableBy(uint256 issuanceNumber, address owner, address reclaimer) external constant returns (uint64) {
+    function temporaryBalanceReclaimableBy(uint256 issuanceNumber, address owner, address reclaimer) external view returns (uint64) {
         return issuances[issuanceNumber].balance[owner][reclaimer];
     }
 
@@ -579,11 +579,11 @@ contract LicenseContract {
      * @param revocationReason A free text explaining why the issuance is 
      *                         revoked
      */
-    function revoke(uint256 issuanceNumber, string revocationReason) external {
+    function revoke(uint256 issuanceNumber, string calldata revocationReason) external {
         require((msg.sender == issuer && managerAddress == address(0) && !disabled) || msg.sender == managerAddress);
         issuances[issuanceNumber].revoked = true;
         issuances[issuanceNumber].revocationReason = revocationReason;
-        Revoke(issuanceNumber);
+        emit Revoke(issuanceNumber);
     }
 
 
@@ -599,7 +599,7 @@ contract LicenseContract {
      */
     function setIssuanceFee(uint128 newFee) onlyLOBRoot external {
         issuanceFee = newFee;
-        IssuanceFeeChange(newFee);
+        emit IssuanceFeeChange(newFee);
     }
 
     /**
@@ -611,7 +611,7 @@ contract LicenseContract {
      * @param amount The amount that shall be withdrawn in Wei
      * @param recipient The address that shall receive the withdrawn Ether
      */
-    function withdraw(uint256 amount, address recipient) onlyLOBRoot external {
+    function withdraw(uint256 amount, address payable recipient) onlyLOBRoot external {
         recipient.transfer(amount);
     }
 
@@ -626,7 +626,7 @@ contract LicenseContract {
      * over control of this license contract.
      */
     function disable() onlyCurrentManager external {
-        Disabling();
+        emit Disabling();
         disabled = true;
     }
 
@@ -648,6 +648,6 @@ contract LicenseContract {
      */
     function takeOverManagementControl(address _managerAddress) onlyLOBRoot external {
         managerAddress = _managerAddress;
-        ManagementControlTakeOver(_managerAddress);
+        emit ManagementControlTakeOver(_managerAddress);
     }
 }

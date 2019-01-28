@@ -107,8 +107,11 @@ contract("License contract's root", function(accounts) {
       assert.equal(creationLogs.length, 1);
       var creationLog = creationLogs[0];
       var licenseContractAddress = creationLog.args.licenseContractAddress;
-      licenseContract = LicenseContract.at(licenseContractAddress);
+      return LicenseContract.at(licenseContractAddress);
     })
+    .then(function (instance) {
+      licenseContract = instance;
+    });
   });
 });
 
@@ -117,6 +120,7 @@ contract("Withdrawal from license contracts", function(accounts) {
 
   var rootContract;
   var licenseContract;
+  var originalBalance;
 
   before(function() {
     return RootContract.deployed().then(function(instance) {
@@ -128,7 +132,10 @@ contract("Withdrawal from license contracts", function(accounts) {
       assert.equal(creationLogs.length, 1);
       var creationLog = creationLogs[0];
       var licenseContractAddress = creationLog.args.licenseContractAddress;
-      licenseContract = LicenseContract.at(licenseContractAddress);
+      return LicenseContract.at(licenseContractAddress);
+    })
+    .then(function(instance) {
+      licenseContract = instance;
     })
     .then(function() {
       return licenseContract.sign("0x50", {from: accounts.issuer});
@@ -149,10 +156,23 @@ contract("Withdrawal from license contracts", function(accounts) {
   });
 
   it("can be done by the root contract owner", function() {
-    var originalBalance = web3.eth.getBalance(accounts.thirdOwner);
-    return rootContract.withdrawFromLicenseContract(licenseContract.address, 500, accounts.thirdOwner, {from: accounts.lobRootOwner})
+    return web3.eth.getBalance(accounts.thirdOwner).then(function(_originalBalance) {
+      originalBalance = _originalBalance;
+    })
     .then(function() {
-      assert.equal(web3.eth.getBalance(accounts.thirdOwner).minus(originalBalance).toNumber(), 500);
+      return rootContract.withdrawFromLicenseContract(licenseContract.address, 500, accounts.thirdOwner, {from: accounts.lobRootOwner})
+    })
+    .then(function() {
+      return web3.eth.getBalance(accounts.thirdOwner);
+    })
+    .then(function(newBalance) {
+      // TODO: We should not just compare the last couple of digits
+
+      // Up to 2^53 > 10^14 * 10 (10 > 9.999999) can be stored by a double 
+      // without loss of precision
+      var newBalanceNum = Number(newBalance.substr(-14));
+      var originalBalanceNum = Number(originalBalance.substr(-14));
+      assert.equal(newBalanceNum - originalBalanceNum, 500);
     })
   });
 });
@@ -173,8 +193,11 @@ contract("Setting a license contract's issuance fee", function(accounts) {
       assert.equal(creationLogs.length, 1);
       var creationLog = creationLogs[0];
       var licenseContractAddress = creationLog.args.licenseContractAddress;
-      licenseContract = LicenseContract.at(licenseContractAddress);
+      return LicenseContract.at(licenseContractAddress);
     })
+    .then(function (instance) {
+      licenseContract = instance;
+    });
   });
 
   it("cannot be done by anyone but the root contract owner", function() {
@@ -242,8 +265,11 @@ contract("Creating a new license contract", function(accounts) {
       assert.equal(creationLogs.length, 1);
       var creationLog = creationLogs[0];
       var licenseContractAddress = creationLog.args.licenseContractAddress;
-      licenseContract = LicenseContract.at(licenseContractAddress);
+      return LicenseContract.at(licenseContractAddress);
     })
+    .then(function (instance) {
+      licenseContract = instance;
+    });
   });
 
 
@@ -253,7 +279,7 @@ contract("Creating a new license contract", function(accounts) {
       return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     })
     .then(function(transaction) {
-      assert.transactionCost(transaction, 3457860, "createLicenseContract");
+      assert.transactionCost(transaction, 3747497, "createLicenseContract");
     });
   });
 
@@ -330,7 +356,10 @@ contract("License contract control takeover", function(accounts) {
       assert.equal(creationLogs.length, 1);
       var creationLog = creationLogs[0];
       var licenseContractAddress = creationLog.args.licenseContractAddress;
-      licenseContract = LicenseContract.at(licenseContractAddress);
+      return LicenseContract.at(licenseContractAddress);
+    })
+    .then(function (instance) {
+      licenseContract = instance;
     });
   });
 
