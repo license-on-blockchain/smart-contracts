@@ -16,7 +16,8 @@ contract LicenseContract {
     }
 
     /**
-     * Assert that the message is sent by the LOB root of this contract.
+     * Assert that the message is sent by the LOB root of this contract. In 
+     * practice this is the LOB root contract.
      */
     modifier onlyLOBRoot() {
         require(msg.sender == lobRoot);
@@ -81,7 +82,8 @@ contract LicenseContract {
     /**
      * The LOB root address that is allowed to set the issuance fee, withdraw 
      * fees and take over control of this license contract. 
-     * Equal to the creator of this contract.
+     * Equal to the creator of this contract. In practice this is the LOB root 
+     * contract.
      */
     address public lobRoot;
 
