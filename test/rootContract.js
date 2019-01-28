@@ -7,7 +7,9 @@ Promise.prototype.thenSolidityThrow = function(description) {
   return this.then(function() {
     assert(false, description);
   }).catch(function(error) {
-    assert(error.toString().indexOf("invalid opcode") != -1 || error.toString().indexOf("revert") != -1, "Solidity should throw (calling an invalid opcode or revert), got error: " + error.toString());
+    var invalidOpcode = error.toString().indexOf("VM Exception while processing transaction: invalid opcode") != -1;
+    var revert = error.toString().indexOf("VM Exception while processing transaction: revert") != -1;
+    assert(invalidOpcode || revert, "Solidity should throw (calling an invalid opcode or revert), got error: " + error.toString());
   });
 };
 
