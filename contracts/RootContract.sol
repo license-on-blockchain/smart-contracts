@@ -41,6 +41,11 @@ contract RootContract {
      */
     uint128 public defaultIssuanceFee;
 
+    /**
+     * The fee in Wei that anyone has to pay to generate a license contract.
+     */
+    uint128 public registrationFee;
+
     /** 
      * The addresses of all license contracts created by this root contract.
      */
@@ -104,7 +109,8 @@ contract RootContract {
      *                             contract's documentation on the requirements 
      *                             of this certificate
      */
-    function createLicenseContract(string calldata issuerName, string calldata liability, uint8 safekeepingPeriod, bytes calldata issuerSSLCertificate) external notDisabled returns (LicenseContract) {
+    function createLicenseContract(string calldata issuerName, string calldata liability, uint8 safekeepingPeriod, bytes calldata issuerSSLCertificate) external payable notDisabled returns (LicenseContract) {
+        require(msg.value >= registrationFee);
         LicenseContract licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee);
         licenseContracts.push(licenseContractAddress);
         emit LicenseContractCreation(licenseContractAddress);
@@ -154,6 +160,19 @@ contract RootContract {
      */
     function setDefaultIssuanceFee(uint128 newDefaultFee) external onlyOwner {
         defaultIssuanceFee = newDefaultFee;
+    }
+
+    /**
+     * Set the registration fee that is required to be paid when generating a 
+     * license contract.
+     *
+     * This can only be invoked by the root contract's owner.
+     * 
+     * @param newRegistrationFee The new fee in Wei that is required to be paid
+     *                           to generate a new license contract.
+     */
+    function setRegistrationFee(uint128 newRegistrationFee) external onlyOwner {
+        registrationFee = newRegistrationFee;
     }
 
     // Managing license contracts

@@ -15,6 +15,41 @@ contract("Root contract constructor", function(unnamedAccounts) {
   })
 });
 
+contract("Root contract registration fee", function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
+
+  it("is initially set to 0", async () => {
+    const rootContract = await RootContract.deployed();
+    assert.equal(await rootContract.registrationFee(), 0);
+  });
+
+  it("cannot be changed by an address that is not the owner", async () => {
+    const rootContract = await RootContract.deployed();
+    await truffleAssert.fails(rootContract.setRegistrationFee(900, {from: accounts.firstOwner}));
+  });
+
+  it("can be changed by the owner", async () => {
+    const rootContract = await RootContract.deployed();
+    await rootContract.setRegistrationFee(900, {from: accounts.lobRootOwner});
+    assert.equal(await rootContract.registrationFee(), 900);
+  });
+
+  it("does not allow creating a license contract if not enough fee is passed", async () => {
+    const rootContract = await RootContract.deployed();
+    await truffleAssert.fails(rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer, value: 600}));
+  });
+
+  it("does allow creating a license contract if exactly the right fee is transmitted", async () => {
+    const rootContract = await RootContract.deployed();
+    await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer, value: 900});
+  });
+
+  it("does allow creating a license contract if more than the required fee is transmitted", async () => {
+    const rootContract = await RootContract.deployed();
+    await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer, value: 1100});
+  });
+});
+
 contract("Root contract default issuance fee", function(unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
 
@@ -148,7 +183,7 @@ contract("Creating a new license contract", function(unnamedAccounts) {
 
   it("does not consume too much gas", async () => {
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    lobAssert.transactionCost(transaction, 3747497, "createLicenseContract");
+    lobAssert.transactionCost(transaction, 3747840, "createLicenseContract");
   });
 
   it("saves the license contract address in the root contract", async () => {
