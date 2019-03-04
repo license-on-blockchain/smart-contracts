@@ -8,13 +8,14 @@ class Issuance {
     this.description = array[0];
     this.code = array[1];
     this.originalSupply = array[2];
-    this.auditTime = array[3];
-    this.auditRemark = array[4];
-    this.revoked = array[5];
-    this.revocationReason = array[6];
-    this.balance = array[7];
-    this.temporaryBalance = array[8];
-    this.temporaryLicenseHolders = array[9];
+    this.originalValue = array[3];
+    this.auditTime = array[4];
+    this.auditRemark = array[5];
+    this.revoked = array[6];
+    this.revocationReason = array[7];
+    this.balance = array[8];
+    this.temporaryBalance = array[9];
+    this.temporaryLicenseHolders = array[10];
   }
 }
 
@@ -92,34 +93,34 @@ contract("License issuing", function(unnamedAccounts) {
 
   it("cannot be done if the license contract has not been signed", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500}));
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500}));
     await licenseContract.sign("0x051381", {from: accounts.issuer});
   });
 
   it("cannot be performed by an address that is not the issuer", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.secondOwner, value: 500}));
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.secondOwner, value: 500}));
   });
 
   it("cannot be performed by the LOB root", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRoot, value: 500}));
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRoot, value: 500}));
   });
 
   it("cannot be performed by the LOB root owner", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRootOwner, value: 500}));
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRootOwner, value: 500}));
   });
 
   it("cannot be performed if the issuance fee is not transmitted", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 10}));
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 10}));
   });
 
   it("works if called by the issuer and exactly the right issuance fee is transmitted", async () => {
     const licenseContract = await LicenseContract.deployed();
-    const transaction = await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
-    lobAssert.transactionCost(transaction, 207646, "license issuing");
+    const transaction = await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+    lobAssert.transactionCost(transaction, 208004, "license issuing");
     assert.equal(await licenseContract.issuancesCount(), 1);
     await lobAssert.relevantIssuances(accounts.firstOwner, [0]);
   });
@@ -162,7 +163,7 @@ contract("License issuing", function(unnamedAccounts) {
 
   it("initially assigns all licenses to the initial owner", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     await lobAssert.balance(0, accounts.firstOwner, 70);
   });
 });
@@ -173,7 +174,7 @@ contract("License transfer", function(unnamedAccounts) {
   before(async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.sign("0x051381", {from: accounts.issuer});
-    await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
   });
 
   it("does not work if the sender's address doesn't own any licenses", async () => {
@@ -248,7 +249,7 @@ contract("Temporary license transfer", function(unnamedAccounts) {
   before(async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.sign("0x051381", {from: accounts.issuer});
-    await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
   });
 
   it("results in correct balances for both sides", async () => {
@@ -340,23 +341,23 @@ contract("Revoking an issuing", function(unnamedAccounts) {
 
   it("cannot be performed by anyone but the issuer", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.issueLicense("Desc2", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+    await licenseContract.issueLicense("Desc2", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     await truffleAssert.fails(licenseContract.revoke(0, "n/a", {from: accounts.firstOwner}));
   });
 
   it("cannot be performed by the LOB root", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRoot, value: 500}));
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRoot, value: 500}));
   });
 
   it("cannot be performed by the LOB root owner if it has not taken over control", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRootOwner, value: 500}));
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.lobRootOwner, value: 500}));
   });
 
   it("can be performed by the issuer", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.issueLicense("Desc2", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+    await licenseContract.issueLicense("Desc2", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     await licenseContract.revoke(0, "My revocation reason", {from: accounts.issuer});
     const issuance = new Issuance(await licenseContract.issuances(0));
     assert.equal(issuance.revoked, true);
@@ -375,7 +376,7 @@ contract("Disabling the license contract", function(unnamedAccounts) {
   before(async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.sign("0x051381", {from: accounts.issuer});
-    await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
   });
 
   it("cannot be performed by anyone else", async () => {
@@ -401,7 +402,7 @@ contract("Disabling the license contract", function(unnamedAccounts) {
 
   it("does not allow the issuance of licenses after the contract has been disabled", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer}));
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer}));
   });
 
   it("does not allow issuances to be revoked after the contract has been disabled", async () => {
@@ -435,14 +436,14 @@ contract("Withdrawing fees", function(unnamedAccounts) {
 
   it("can be done by the LOB root", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
     await licenseContract.withdraw(6000, accounts.lobRoot, {from:accounts.lobRoot});
     await licenseContract.withdraw(1000, accounts.lobRoot, {from:accounts.lobRoot});
   });
 
   it("connot be done by anyone but the LOB root", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
     await truffleAssert.fails(licenseContract.withdraw(6000, accounts.lobRoot, {from:accounts.issuer}));
   });
 });
@@ -453,8 +454,8 @@ contract("Taking over management", function(unnamedAccounts) {
   before(async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.sign("0x051381", {from: accounts.issuer});
-    await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
-    await licenseContract.issueLicense("Desc2", "ID2", accounts.firstOwner, 100, "Remark2", 1509552789, {from:accounts.issuer, value: 7000});
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
+    await licenseContract.issueLicense("Desc2", "ID2", /*originalValue=*/1000, accounts.firstOwner, 100, "Remark2", 1509552789, {from:accounts.issuer, value: 7000});
   });
 
   it("cannot be done by anyone but the LOB root", async () => {
@@ -470,7 +471,7 @@ contract("Taking over management", function(unnamedAccounts) {
 
   it("disallows the issuer to issue licenses", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000}));
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000}));
   });
 
   it("disallows the issuer to revoke licenses", async () => {
@@ -491,7 +492,7 @@ contract("Taking over management", function(unnamedAccounts) {
 
   it("does not allow the LOB root to issue licenses", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.manager, value: 7000}));
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.manager, value: 7000}));
   });
 
   it("allows the LOB root to disable the license contract", async () => {

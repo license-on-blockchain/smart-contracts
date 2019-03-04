@@ -26,6 +26,13 @@ library LicenseContractLib {
         uint64 originalSupply;
 
         /**
+         * The value of each individual license according to the manufacturer's 
+         * price list at the time it was origiginally purchased from the 
+         * manufacturer in Euro-Cents.
+         */
+        uint64 originalValue;
+
+        /**
          * The date at which the audit was performed.
          *
          * Unix timestamp (seconds since 01/01/1970 00:00 +0000)
@@ -105,10 +112,8 @@ library LicenseContractLib {
      * technical limitations, this does not set original supply nor initalises
      * the balances mapping.
      */
-    function insert(Issuance[] storage issuances, string memory description, string memory code, uint32 auditTime, string memory auditRemark) public returns (uint256) {
-        // Passing originalSupply would exceed the number of allowed parameters
-        // it is thus set in `createInitialLicenses`.
-        return issuances.push(Issuance(description, code, /*originalSupply*/0, auditTime, auditRemark, /*revoked*/false, /*revocationReason*/"")) - 1;
+    function insert(Issuance[] storage issuances, string memory description, string memory code, uint64 originalSupply, uint64 originalValue, uint32 auditTime, string memory auditRemark) public returns (uint256) {
+        return issuances.push(Issuance(description, code, originalSupply, originalValue, auditTime, auditRemark, /*revoked*/false, /*revocationReason*/"")) - 1;
     }
 
     /**
@@ -117,8 +122,6 @@ library LicenseContractLib {
      * This also emits all corresponding events.
      */
     function createInitialLicenses(Issuance[] storage issuances, uint256 issuanceNumber, uint64 originalSupply, address initialOwnerAddress) public returns (uint256) {
-        Issuance storage issuance = issuances[issuanceNumber];
-        issuance.originalSupply = originalSupply;
         issuances[issuanceNumber].balance[initialOwnerAddress][initialOwnerAddress] = originalSupply;
         emit Issuing(issuanceNumber);
         emit Transfer(issuanceNumber, address(0x0), initialOwnerAddress, originalSupply, /*temporary*/false);

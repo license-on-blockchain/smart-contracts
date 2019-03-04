@@ -100,7 +100,7 @@ contract("Withdrawal from license contracts", function(unnamedAccounts) {
     const licenseContractAddress = creationLog.args.licenseContractAddress;
     licenseContract = await LicenseContract.at(licenseContractAddress);
     await licenseContract.sign("0x50", {from: accounts.issuer});
-    await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
   });
 
   it("cannot be done by anyone but the root contract owner", async () => {
@@ -182,7 +182,7 @@ contract("Creating a new license contract", function(unnamedAccounts) {
 
   it("does not consume too much gas", async () => {
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    lobAssert.transactionCost(transaction, 3747840, "createLicenseContract");
+    lobAssert.transactionCost(transaction, 3767890, "createLicenseContract");
   });
 
   it("saves the license contract address in the root contract", async () => {

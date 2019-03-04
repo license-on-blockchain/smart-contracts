@@ -331,6 +331,8 @@ contract LicenseContract {
     * 
     * @param licenseDescription A human-readable description of the license type
     * @param licenseCode An unambiguous code for the license type
+    * @param originalValue The original value of each individual license in 
+    *                      Euro-Cents
     * @param initialOwnerAddress The address that shall initially own all the 
     *                            licenses
     * @param numLicenses The number of separately tradable licenses to be issued
@@ -341,6 +343,7 @@ contract LicenseContract {
     function issueLicense(
         string calldata licenseDescription,
         string calldata licenseCode,
+        uint64 originalValue,
         address initialOwnerAddress,
         uint64 numLicenses,
         string calldata auditRemark,
@@ -356,7 +359,7 @@ contract LicenseContract {
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
         require(msg.value >= issuanceFee);
-        uint issuanceNumber = issuances.insert(licenseDescription, licenseCode, auditTime, auditRemark);
+        uint issuanceNumber = issuances.insert(licenseDescription, licenseCode, numLicenses, originalValue, auditTime, auditRemark);
         relevantIssuances[initialOwnerAddress].push(issuanceNumber);
         issuances.createInitialLicenses(issuanceNumber, numLicenses, initialOwnerAddress);
     }
