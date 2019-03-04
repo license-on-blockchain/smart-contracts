@@ -1,382 +1,209 @@
-// Test framework extension to detect solidity throws easily
+const truffleAssert = require('truffle-assertions');
+const BigNumber = require('bignumber.js');
+const lobAssert = require('./lib/lobAssert.js');
+const Accounts = require('./lib/Accounts.js');
 
-Promise.prototype.thenSolidityThrow = function(description) {
-  if (typeof description === 'undefined') {
-    description = "Expected to throw";
-  }
-  return this.then(function() {
-    assert(false, description);
-  }).catch(function(error) {
-    var invalidOpcode = error.toString().indexOf("VM Exception while processing transaction: invalid opcode") != -1;
-    var revert = error.toString().indexOf("VM Exception while processing transaction: revert") != -1;
-    assert(invalidOpcode || revert, "Solidity should throw (calling an invalid opcode or revert), got error: " + error.toString());
-  });
-};
+const LicenseContract = artifacts.require("./LicenseContract.sol");
+const RootContract = artifacts.require("./RootContract.sol");
 
-assert.transactionCost = function(transaction, expectedCost, methodName) {
-  assert.isAtMost(transaction.receipt.gasUsed, expectedCost + 64, "Regression in gas usage for " + methodName + " by " + (transaction.receipt.gasUsed - expectedCost) + " gas");
-  assert.isAtLeast(transaction.receipt.gasUsed, expectedCost - 64, "🎉 Improvement in gas usage for " + methodName + " by " + (expectedCost - transaction.receipt.gasUsed) + " gas");
-};
+contract("Root contract constructor", function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
 
-var LicenseContract = artifacts.require("./LicenseContract.sol");
-var RootContract = artifacts.require("./RootContract.sol");
-
-contract("Root contract constructor", function(accounts) {
-  accounts = require("../accounts.js")(accounts);
-
-  it("sets the owner to the message sender", function() {
-    return RootContract.deployed().then(function(rootContract) {
-      return rootContract.owner();
-    })
-    .then(function(owner) {
-      assert.equal(owner.valueOf(), accounts.lobRootOwner);
-    });
+  it("sets the owner to the message sender", async () => {
+    const rootContract = await RootContract.deployed();
+    assert.equal(await rootContract.owner(), accounts.lobRootOwner);
   })
 });
 
-contract("Root contract default issuance fee", function(accounts) {
-  accounts = require("../accounts.js")(accounts);
+contract("Root contract default issuance fee", function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
 
-  it("is initially set to 0", function() {
-    return RootContract.deployed().then(function(rootContract) {
-      return rootContract.defaultIssuanceFee();
-    })
-    .then(function(defaultIssuanceFee) {
-      assert.equal(defaultIssuanceFee.valueOf(), 0);
-    });
+  it("is initially set to 0", async () => {
+    const rootContract = await RootContract.deployed();
+    assert.equal(await rootContract.defaultIssuanceFee(), 0);
   });
 
-  it("cannot be changed from any address but the owner", function() {
-    return RootContract.deployed().then(function(rootContract) {
-      return rootContract.setDefaultIssuanceFee(500, {from:accounts.firstOwner});
-    })
-    .thenSolidityThrow();
+  it("cannot be changed from any address but the owner", async () => {
+    const rootContract = await RootContract.deployed();
+    await truffleAssert.fails(rootContract.setDefaultIssuanceFee(500, {from:accounts.firstOwner}));
   });
 
-  it("can be changed by the owner", function() {
-    var rootContract;
-    return RootContract.deployed().then(function(instance) {
-      rootContract = instance;
-      return rootContract.setDefaultIssuanceFee(800, {from: accounts.lobRootOwner});
-    })
-    .then(function() {
-      return rootContract.defaultIssuanceFee();
-    })
-    .then(function(defaultIssuanceFee) {
-      assert.equal(defaultIssuanceFee.valueOf(), 800);
-    });
+  it("can be changed by the owner", async () => {
+    const rootContract = await RootContract.deployed();
+    await rootContract.setDefaultIssuanceFee(800, {from: accounts.lobRootOwner});
+    assert.equal(await rootContract.defaultIssuanceFee(), 800);
   });
 });
 
-contract("Root contract owner", function(accounts) {
-  accounts = require("../accounts.js")(accounts);
+contract("Root contract owner", function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
 
-  it("cannot be changed by anyone but the current owner", function() {
-    return RootContract.deployed().then(function(rootContract) {
-      return rootContract.setOwner(accounts.firstOwner, {from: accounts.secondOwner});
-    })
-    .thenSolidityThrow();
+  it("cannot be changed by anyone but the current owner", async () => {
+    const rootContract = await RootContract.deployed();
+    await truffleAssert.fails(rootContract.setOwner(accounts.firstOwner, {from: accounts.secondOwner}));
   });
 
-  it("can be changed by the current owner", function() {
-    var rootContract;
-    return RootContract.deployed().then(function(instance) {
-      rootContract = instance;
-      return rootContract.setOwner(accounts.firstOwner, {from: accounts.lobRootOwner});
-    })
-    .then(function() {
-      return rootContract.owner();
-    })
-    .then(function(owner) {
-      assert.equal(owner.valueOf(), accounts.firstOwner);
-    });
+  it("can be changed by the current owner", async () => {
+    const rootContract = await RootContract.deployed();
+    await rootContract.setOwner(accounts.firstOwner, {from: accounts.lobRootOwner});
+    assert.equal(await rootContract.owner(), accounts.firstOwner);
   });
 });
 
-contract("License contract's root", function(accounts) {
-  accounts = require("../accounts.js")(accounts);
+contract("Withdrawal from license contracts", function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
 
-  var rootContract;
-  var licenseContract;
+  let rootContract;
+  let licenseContract;
 
-  before(function() {
-    return RootContract.deployed().then(function(instance) {
-      rootContract = instance;
-      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    })
-    .then(function(transaction) {
-      var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
-      assert.equal(creationLogs.length, 1);
-      var creationLog = creationLogs[0];
-      var licenseContractAddress = creationLog.args.licenseContractAddress;
-      return LicenseContract.at(licenseContractAddress);
-    })
-    .then(function (instance) {
-      licenseContract = instance;
-    });
+  before(async () => {
+    rootContract = await RootContract.deployed();
+    const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+    const creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
+    assert.equal(creationLogs.length, 1);
+    const creationLog = creationLogs[0];
+    const licenseContractAddress = creationLog.args.licenseContractAddress;
+    licenseContract = await LicenseContract.at(licenseContractAddress);
+    await licenseContract.sign("0x50", {from: accounts.issuer});
+    await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+  });
+
+  it("cannot be done by anyone but the root contract owner", async () => {
+    await truffleAssert.fails(rootContract.withdrawFromLicenseContract(licenseContract.address, 500, accounts.thirdOwner, {from: accounts.thirdOwner}));
+  });
+
+  it("cannot be done with root contract as recipient", async () => {
+    await truffleAssert.fails(rootContract.withdrawFromLicenseContract(licenseContract.address, 500, rootContract.address, {from: accounts.lobRootOwner}));
+  });
+
+  it("can be done by the root contract owner", async () => {
+    const originalBalance = await web3.eth.getBalance(accounts.thirdOwner);
+    await rootContract.withdrawFromLicenseContract(licenseContract.address, 500, accounts.thirdOwner, {from: accounts.lobRootOwner});
+    const newBalance = await web3.eth.getBalance(accounts.thirdOwner);
+    const newBalanceNum = new BigNumber(newBalance);
+    const originalBalanceNum = new BigNumber(originalBalance);
+    assert.equal(newBalanceNum.minus(originalBalanceNum).toNumber(), 500);
   });
 });
 
-contract("Withdrawal from license contracts", function(accounts) {
-  accounts = require("../accounts.js")(accounts);
+contract("Setting a license contract's issuance fee", function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
 
-  var rootContract;
-  var licenseContract;
-  var originalBalance;
+  let rootContract;
+  let licenseContract;
 
-  before(function() {
-    return RootContract.deployed().then(function(instance) {
-      rootContract = instance;
-      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    })
-    .then(function(transaction) {
-      var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
-      assert.equal(creationLogs.length, 1);
-      var creationLog = creationLogs[0];
-      var licenseContractAddress = creationLog.args.licenseContractAddress;
-      return LicenseContract.at(licenseContractAddress);
-    })
-    .then(function(instance) {
-      licenseContract = instance;
-    })
-    .then(function() {
-      return licenseContract.sign("0x50", {from: accounts.issuer});
-    })
-    .then(function() {
-      return licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
-    })
+  before(async () => {
+    rootContract = await RootContract.deployed();
+    const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+    const creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
+    assert.equal(creationLogs.length, 1);
+    const creationLog = creationLogs[0];
+    const licenseContractAddress = creationLog.args.licenseContractAddress;
+    licenseContract = await LicenseContract.at(licenseContractAddress);
   });
 
-  it("cannot be done by anyone but the root contract owner", function() {
-    return rootContract.withdrawFromLicenseContract(licenseContract.address, 500, accounts.thirdOwner, {from: accounts.thirdOwner})
-    .thenSolidityThrow();
+  it("cannot be done by anyone but the root contract owner", async () => {
+    await truffleAssert.fails(rootContract.setLicenseContractIssuanceFee(licenseContract.address, 50, {from: accounts.firstOwner}));
   });
 
-  it("cannot be done with root contract as recipient", function() {
-    return rootContract.withdrawFromLicenseContract(licenseContract.address, 500, rootContract.address, {from: accounts.lobRootOwner})
-    .thenSolidityThrow();
-  });
-
-  it("can be done by the root contract owner", function() {
-    return web3.eth.getBalance(accounts.thirdOwner).then(function(_originalBalance) {
-      originalBalance = _originalBalance;
-    })
-    .then(function() {
-      return rootContract.withdrawFromLicenseContract(licenseContract.address, 500, accounts.thirdOwner, {from: accounts.lobRootOwner})
-    })
-    .then(function() {
-      return web3.eth.getBalance(accounts.thirdOwner);
-    })
-    .then(function(newBalance) {
-      // TODO: We should not just compare the last couple of digits
-
-      // Up to 2^53 > 10^14 * 10 (10 > 9.999999) can be stored by a double 
-      // without loss of precision
-      var newBalanceNum = Number(newBalance.substr(-14));
-      var originalBalanceNum = Number(originalBalance.substr(-14));
-      assert.equal(newBalanceNum - originalBalanceNum, 500);
-    })
+  it("can be done by the root contract owner", async () => {
+    await rootContract.setLicenseContractIssuanceFee(licenseContract.address, 50, {from: accounts.lobRootOwner})
+    assert.equal(await licenseContract.issuanceFee(), 50);
   });
 });
 
-contract("Setting a license contract's issuance fee", function(accounts) {
-  accounts = require("../accounts.js")(accounts);
+contract("Root contract disabling", function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
 
-  var rootContract;
-  var licenseContract;
-
-  before(function() {
-    return RootContract.deployed().then(function(instance) {
-      rootContract = instance;
-      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    })
-    .then(function(transaction) {
-      var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
-      assert.equal(creationLogs.length, 1);
-      var creationLog = creationLogs[0];
-      var licenseContractAddress = creationLog.args.licenseContractAddress;
-      return LicenseContract.at(licenseContractAddress);
-    })
-    .then(function (instance) {
-      licenseContract = instance;
-    });
+  it("cannot be done by anyone but the root contract owner", async () => {
+    const rootContract = await RootContract.deployed();
+    await truffleAssert.fails(rootContract.disable({from: accounts.issuer}));
   });
 
-  it("cannot be done by anyone but the root contract owner", function() {
-    return rootContract.setLicenseContractIssuanceFee(licenseContract.address, 50, {from: accounts.firstOwner})
-    .thenSolidityThrow();
-  });
-
-  it("can be done by the root contract owner", function() {
-    return rootContract.setLicenseContractIssuanceFee(licenseContract.address, 50, {from: accounts.lobRootOwner})
-    .then(function() {
-      return licenseContract.issuanceFee();
-    })
-    .then(function(issuanceFee) {
-      assert.equal(issuanceFee.valueOf(), 50);
-    })
+  it("can be done by the root contract owner", async () => {
+    const rootContract = await RootContract.deployed();
+    const transaction = await rootContract.disable({from: accounts.lobRootOwner});
+    truffleAssert.eventEmitted(transaction, 'Disabling');
+    assert.equal(await rootContract.disabled(), true);
   });
 });
 
-contract("Root contract disabling", function(accounts) {
-  accounts = require("../accounts.js")(accounts);
+contract("Creating a new license contract", function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
 
-  var rootContract;
+  let licenseContract;
+  let rootContract;
 
-  before(function() {
-    return RootContract.deployed().then(function(instance) {
-      rootContract = instance;
-    });
+  before(async () => {
+    rootContract = await RootContract.deployed();
+    await rootContract.setDefaultIssuanceFee(950, {from: accounts.lobRootOwner});
+    const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+    const creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
+    assert.equal(creationLogs.length, 1);
+    const creationLog = creationLogs[0];
+    const licenseContractAddress = creationLog.args.licenseContractAddress;
+    licenseContract = await LicenseContract.at(licenseContractAddress);
+  });
+
+
+  it("does not consume too much gas", async () => {
+    const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+    lobAssert.transactionCost(transaction, 3747497, "createLicenseContract");
+  });
+
+  it("saves the license contract address in the root contract", async () => {
+    assert.equal(await rootContract.licenseContractCount(), 2);
+    assert.equal(await rootContract.licenseContracts(0), licenseContract.address);
   })
 
-  it("cannot be done by anyone but the root contract owner", function() {
-    return rootContract.disable({from: accounts.issuer})
-    .thenSolidityThrow();
+  it("has the LOB root set to the root contract", async () => {
+    assert.equal(await licenseContract.lobRoot(), rootContract.address);
   });
 
-  it("can be done by the root contract owner", function() {
-    return rootContract.disable({from: accounts.lobRootOwner})
-    .then(function(transaction) {
-      var disabledLogs = transaction.logs.filter(function(obj) { return obj.event == "Disabling"; });
-      assert.equal(disabledLogs.length, 1);
-    })
-    .then(function() {
-      return rootContract.disabled();
-    })
-    .then(function(disabled) {
-      assert.equal(disabled, true);
-    })
-  });
-});
-
-contract("Creating a new license contract", function(accounts) {
-  accounts = require("../accounts.js")(accounts);
-
-  var licenseContract;
-  var rootContract;
-
-  before(function() {
-    return RootContract.deployed().then(function(instance) {
-      rootContract = instance;
-      return rootContract.setDefaultIssuanceFee(950, {from: accounts.lobRootOwner});
-    }).then(function() {
-      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    })
-    .then(function(transaction) {
-      var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
-      assert.equal(creationLogs.length, 1);
-      var creationLog = creationLogs[0];
-      var licenseContractAddress = creationLog.args.licenseContractAddress;
-      return LicenseContract.at(licenseContractAddress);
-    })
-    .then(function (instance) {
-      licenseContract = instance;
-    });
+  it("has the default issuance fee set as issuance fee", async () => {
+    assert.equal(await licenseContract.issuanceFee(), 950);
   });
 
-
-  it("does not consume too much gas", function() {
-    return RootContract.deployed().then(function(instance) {
-      rootContract = instance;
-      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    })
-    .then(function(transaction) {
-      assert.transactionCost(transaction, 3747497, "createLicenseContract");
-    });
+  it("carries the issuer's name", async () => {
+    assert.equal(await licenseContract.issuerName(), "Soft&Cloud");
   });
 
-  it("saves the license contract address in the root contract", function() {
-    return rootContract.licenseContractCount()
-    .then(function(licenseContractCount) {
-      assert.equal(licenseContractCount.valueOf(), 2);
-    })
-    .then(function() {
-      return rootContract.licenseContracts(0);
-    })
-    .then(function(licenseContractAddress) {
-      assert.equal(licenseContractAddress.valueOf(), licenseContract.address);
-    });
-  })
-
-  it("has the LOB root set to the root contract", function() {
-    return licenseContract.lobRoot()
-    .then(function(lobRoot) {
-      assert.equal(lobRoot.valueOf(), rootContract.address);
-    });
+  it("carries the issuer's certificate", async () => {
+    assert.equal(await licenseContract.issuerSSLCertificate(), "0x5e789a");
   });
 
-  it("has the default issuance fee set as issuance fee", function() {
-    return licenseContract.issuanceFee()
-    .then(function(issuanceFee) {
-      assert.equal(issuanceFee.valueOf(), 950);
-    });
+  it("sets the license contract issuer to the caller of the root contract function", async () => {
+    assert.equal(await licenseContract.issuer(), accounts.issuer);
   });
 
-  it("carries the issuer's name", function() {
-    return licenseContract.issuerName()
-    .then(function(issuerName) {
-      assert.equal(issuerName.valueOf(), "Soft&Cloud");
-    });
-  });
-
-  it("carries the issuer's certificate", function() {
-    return licenseContract.issuerSSLCertificate()
-    .then(function(issuerSSLCertificate) {
-      assert.equal(issuerSSLCertificate.valueOf(), "0x5e789a");
-    });
-  });
-
-  it("sets the license contract issuer to the caller of the root contract function", function() {
-    return licenseContract.issuer()
-    .then(function(issuer) {
-      assert.equal(issuer.valueOf(), accounts.issuer);
-    });
-  });
-
-  it("cannot be done if root contract is disabled", function() {
-    return rootContract.disable({from: accounts.lobRootOwner})
-    .then(function() {
-      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    })
-    .thenSolidityThrow();
+  it("cannot be done if root contract is disabled", async () => {
+    await rootContract.disable({from: accounts.lobRootOwner});
+    await truffleAssert.fails(rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer}));
   });
 });
 
-contract("License contract control takeover", function(accounts) {
-  accounts = require("../accounts.js")(accounts);
+contract("License contract control takeover", function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
 
-  var rootContract;
-  var licenseContract;
+  let rootContract;
+  let licenseContract;
 
-  before(function() {
-    return RootContract.deployed().then(function(instance) {
-      rootContract = instance;
-      return rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    })
-    .then(function(transaction) {
-      var creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
-      assert.equal(creationLogs.length, 1);
-      var creationLog = creationLogs[0];
-      var licenseContractAddress = creationLog.args.licenseContractAddress;
-      return LicenseContract.at(licenseContractAddress);
-    })
-    .then(function (instance) {
-      licenseContract = instance;
-    });
+  before(async () => {
+    rootContract = await RootContract.deployed();
+    const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+    const creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
+    assert.equal(creationLogs.length, 1);
+    const creationLog = creationLogs[0];
+    const licenseContractAddress = creationLog.args.licenseContractAddress;
+    licenseContract = await LicenseContract.at(licenseContractAddress);
   });
 
-  it("cannot be initiated by anyone but the root contract's owner", function() {
-    return rootContract.takeOverLicenseContractControl(licenseContract.address, accounts.manager, {from: accounts.issuer})
-    .thenSolidityThrow();
+  it("cannot be initiated by anyone but the root contract's owner", async () => {
+    await truffleAssert.fails(rootContract.takeOverLicenseContractControl(licenseContract.address, accounts.manager, {from: accounts.issuer}));
   })
 
-  it("can be initiated by the root contract's owner", function() {
-    return rootContract.takeOverLicenseContractControl(licenseContract.address, accounts.manager, {from: accounts.lobRootOwner})
-    .then(function() {
-      return licenseContract.managerAddress();
-    })
-    .then(function(managerAddress) {
-      assert.equal(managerAddress, accounts.manager);
-    });
+  it("can be initiated by the root contract's owner", async () => {
+    await rootContract.takeOverLicenseContractControl(licenseContract.address, accounts.manager, {from: accounts.lobRootOwner});
+    assert.equal(await licenseContract.managerAddress(), accounts.manager);
   });
 });
