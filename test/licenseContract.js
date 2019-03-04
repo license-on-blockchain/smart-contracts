@@ -85,7 +85,7 @@ contract("License contract signature", function(unnamedAccounts) {
     const licenseContract = await LicenseContract.deployed();
     await truffleAssert.fails(licenseContract.sign("0x051381", {from: accounts.issuer}));
   });
-})
+});
 
 contract("License issuing", function(unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
@@ -123,7 +123,6 @@ contract("License issuing", function(unnamedAccounts) {
     assert.equal(await licenseContract.issuancesCount(), 1);
     await lobAssert.relevantIssuances(accounts.firstOwner, [0]);
   });
-
 
   it("sets the description", async () => {
     const licenseContract = await LicenseContract.deployed();
@@ -191,17 +190,17 @@ contract("License transfer", function(unnamedAccounts) {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
     lobAssert.transactionCost(transaction, 79000, "transfer");
-    await lobAssert.balance(0, accounts.firstOwner, 50)
-    await lobAssert.balance(0, accounts.secondOwner, 20)
+    await lobAssert.balance(0, accounts.firstOwner, 50);
+    await lobAssert.balance(0, accounts.secondOwner, 20);
     await lobAssert.relevantIssuances(accounts.secondOwner, [0]);
   });
 
   it("can transfer licenses from the second owner to a third owner", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.transfer(0, accounts.thirdOwner, 15, {from:accounts.secondOwner});
-    await lobAssert.balance(0, accounts.firstOwner, 50)
-    await lobAssert.balance(0, accounts.secondOwner, 5)
-    await lobAssert.balance(0, accounts.thirdOwner, 15)
+    await lobAssert.balance(0, accounts.firstOwner, 50);
+    await lobAssert.balance(0, accounts.secondOwner, 5);
+    await lobAssert.balance(0, accounts.thirdOwner, 15);
     await lobAssert.relevantIssuances(accounts.thirdOwner, [0]);
   });
 
@@ -218,27 +217,27 @@ contract("License transfer", function(unnamedAccounts) {
   it("can transfer licenses to from one user to himself", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.transfer(0, accounts.secondOwner, 5, {from:accounts.secondOwner});
-    await lobAssert.balance(0, accounts.firstOwner, 50)
-    await lobAssert.balance(0, accounts.secondOwner, 5)
-    await lobAssert.balance(0, accounts.thirdOwner, 15)
+    await lobAssert.balance(0, accounts.firstOwner, 50);
+    await lobAssert.balance(0, accounts.secondOwner, 5);
+    await lobAssert.balance(0, accounts.thirdOwner, 15);
     await lobAssert.relevantIssuances(accounts.secondOwner, [0, 0]);
   });
 
   it("can transfer 0 licenses", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.transfer(0, accounts.fourthOwner, 0, {from:accounts.fourthOwner});
-    await lobAssert.balance(0, accounts.firstOwner, 50)
-    await lobAssert.balance(0, accounts.secondOwner, 5)
-    await lobAssert.balance(0, accounts.thirdOwner, 15)
+    await lobAssert.balance(0, accounts.firstOwner, 50);
+    await lobAssert.balance(0, accounts.secondOwner, 5);
+    await lobAssert.balance(0, accounts.thirdOwner, 15);
     await lobAssert.balance(0, accounts.fourthOwner, 0);
   });
 
   it("can transfer licenses back to the previous owner", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.transfer(0, accounts.secondOwner, 15, {from:accounts.thirdOwner});
-    await lobAssert.balance(0, accounts.firstOwner, 50)
-    await lobAssert.balance(0, accounts.secondOwner, 20)
-    await lobAssert.balance(0, accounts.thirdOwner, 0)
+    await lobAssert.balance(0, accounts.firstOwner, 50);
+    await lobAssert.balance(0, accounts.secondOwner, 20);
+    await lobAssert.balance(0, accounts.thirdOwner, 0);
     await lobAssert.relevantIssuances(accounts.secondOwner, [0, 0, 0]);
   });
 });
@@ -291,7 +290,7 @@ contract("Temporary license transfer", function(unnamedAccounts) {
     await licenseContract.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner});
     await lobAssert.balance(0, accounts.firstOwner, 55);
     await lobAssert.balance(0, accounts.secondOwner, 15);
-    await licenseContract.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner})
+    await licenseContract.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner});
     await lobAssert.balance(0, accounts.firstOwner, 60);
     await lobAssert.balance(0, accounts.secondOwner, 10);
     await lobAssert.temporaryBalance(0, accounts.firstOwner, 0);
@@ -323,7 +322,7 @@ contract("Temporary license transfer", function(unnamedAccounts) {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.revoke(0, "n/a", {from: accounts.issuer});
     await truffleAssert.fails(licenseContract.transferTemporarily(0, accounts.secondOwner, 10, {from: accounts.firstOwner}));
-  })
+  });
 
   it("does not allow licenses to be reclaimed if the license contract has been revoked", async () => {
     const licenseContract = await LicenseContract.deployed();
@@ -437,8 +436,8 @@ contract("Withdrawing fees", function(unnamedAccounts) {
   it("can be done by the LOB root", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.issueLicense("Desc", "ID", accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
-    await licenseContract.withdraw(6000, accounts.lobRoot, {from:accounts.lobRoot})
-    await licenseContract.withdraw(1000, accounts.lobRoot, {from:accounts.lobRoot})
+    await licenseContract.withdraw(6000, accounts.lobRoot, {from:accounts.lobRoot});
+    await licenseContract.withdraw(1000, accounts.lobRoot, {from:accounts.lobRoot});
   });
 
   it("connot be done by anyone but the LOB root", async () => {
@@ -506,4 +505,4 @@ contract("Taking over management", function(unnamedAccounts) {
     await licenseContract.revoke(1, "", {from: accounts.manager});
     assert.equal(new Issuance(await licenseContract.issuances(1)).revoked, true);
   });
-})
+});

@@ -12,7 +12,7 @@ contract("Root contract constructor", function(unnamedAccounts) {
   it("sets the owner to the message sender", async () => {
     const rootContract = await RootContract.deployed();
     assert.equal(await rootContract.owner(), accounts.lobRootOwner);
-  })
+  });
 });
 
 contract("Root contract registration fee", function(unnamedAccounts) {
@@ -142,7 +142,7 @@ contract("Setting a license contract's issuance fee", function(unnamedAccounts) 
   });
 
   it("can be done by the root contract owner", async () => {
-    await rootContract.setLicenseContractIssuanceFee(licenseContract.address, 50, {from: accounts.lobRootOwner})
+    await rootContract.setLicenseContractIssuanceFee(licenseContract.address, 50, {from: accounts.lobRootOwner});
     assert.equal(await licenseContract.issuanceFee(), 50);
   });
 });
@@ -180,7 +180,6 @@ contract("Creating a new license contract", function(unnamedAccounts) {
     licenseContract = await LicenseContract.at(licenseContractAddress);
   });
 
-
   it("does not consume too much gas", async () => {
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     lobAssert.transactionCost(transaction, 3747840, "createLicenseContract");
@@ -189,7 +188,7 @@ contract("Creating a new license contract", function(unnamedAccounts) {
   it("saves the license contract address in the root contract", async () => {
     assert.equal(await rootContract.licenseContractCount(), 2);
     assert.equal(await rootContract.licenseContracts(0), licenseContract.address);
-  })
+  });
 
   it("has the LOB root set to the root contract", async () => {
     assert.equal(await licenseContract.lobRoot(), rootContract.address);
@@ -235,7 +234,7 @@ contract("License contract control takeover", function(unnamedAccounts) {
 
   it("cannot be initiated by anyone but the root contract's owner", async () => {
     await truffleAssert.fails(rootContract.takeOverLicenseContractControl(licenseContract.address, accounts.manager, {from: accounts.issuer}));
-  })
+  });
 
   it("can be initiated by the root contract's owner", async () => {
     await rootContract.takeOverLicenseContractControl(licenseContract.address, accounts.manager, {from: accounts.lobRootOwner});
