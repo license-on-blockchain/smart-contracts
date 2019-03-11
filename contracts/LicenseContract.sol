@@ -1,6 +1,5 @@
 pragma solidity ^0.5.0;
 
-import "./StringUtils.sol";
 import "./LicenseContractLib.sol";
 
 contract LicenseContract {
@@ -295,18 +294,7 @@ contract LicenseContract {
      *         the given parameters
      */
     function certificateText() external view returns (string memory) {
-        string memory s = StringUtils.concat(
-            "Wir, ",
-            issuerName,
-            ", erklären hiermit,\n\ndass wir unter dem Ethereum Smart Contract mit der Ethereum-Adresse „",
-            StringUtils.addressToString(address(this)),
-            "“ (nachfolgend „LOB-License-Contract“ genannt) Software-Lizenzbescheinigungen gemäß dem Verfahren der License-On-Blockchain Foundation („LOB-Verfahren“) in Version 1 ausstellen.\nEine detaillierte Spezifikation des Verfahrens kann unter der URL https://github.com/license-on-blockchain/whitepaper/releases/download/version-1/Whitepaper.pdf abgerufen werden. Das Dokument hat den SHA-256 Hashwert f027e9ceba595597e02e48aa5fa129a5c7b9f7b1c2f961dc0112f78440c94763.\n\nGemäß diesem LOB-Verfahren unterwerfen wir uns insbesondere folgenden Obliegenheiten:\n1. Wir werden Software-Lizenzbescheinigungen nur ausstellen, wenn unser Prüfung ergeben hat, dass \n  a) die Lizenzen ursprünglich zur dauerhaften Nutzung im Bereich der EU verkauft wurden \n  b) die Lizenzen zum Zeitpunkt des Verkaufs an den Lizenzinhaber nicht mehr verwendet wurden oder anderweitig installiert bzw. im Einsatz waren\n  c) über diese Lizenzen nicht zwischenzeitlich anderweitig verfügt und\n  d) keine weitere Lizenzbestätigung bei einem anderen Auditor – nach welchem Verfahren auch immer – angefordert wurde.\n2. Wir werden uns von den Empfängern unserer Lizenzbescheinigungen schriftlich und nachweisbar wortwörtlich zusichern lassen: „Ich werde eine Weitergabe der hiermit bescheinigten Lizenz(en) auf dem License Contract durch dafür vorgesehenen Funktionen dokumentieren. Soll die Übertragung außerhalb des LOB-Verfahrens erfolgen, werde ich zuvor die Bescheinigung der Lizenz durch Übertragung der Lizenz an die Pseudo-Adresse ‚0x0000000000000000000000000000000000000000‘ terminieren. Dem Folgeerwerber werde ich eine gleichlautende Obliegenheit unter Verwendung des Wortlauts dieses Absatzes auferlegen.“\n3. Wir halten unsere Lizenzbescheinigung auch gegenüber jedem aufrecht, dem eine oder mehrere mit dieser Lizenzbescheinigung bestätigte Lizenzen übertragen werden, sofern\n  a) diese Übertragung innerhalb dieses LOB-License-Contracts mithilfe der Funktion „transfer“ oder „transferTemporarily“ dokumentiert wurde und\n  b) der Empfänger der Transaktion sich ebenfalls der o.g. Obliegenheit zur Dokumentation weiterer Veräußerungen auf der Blockchain unterworfen hat.\n\nUns vorgelegte Belege und Kaufnachweise zu den von uns bescheinigten Lizenzen werden bei uns für die Dauer von ");
-        s = StringUtils.concat(
-            s,
-            StringUtils.uintToString(safekeepingPeriod),
-            " Jahren archiviert.\n\n",
-            liability);
-        return s;
+        return LicenseContractLib.buildCertificateText(issuerName, address(this), safekeepingPeriod, liability);
     }
 
     /**
