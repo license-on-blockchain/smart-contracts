@@ -8,6 +8,24 @@ contract LicenseContract {
     using LicenseContractLib for LicenseContractLib.Issuance[];
 
     /**
+     * A tier determining the percentage of a license's value that is required 
+     * to be paid as a fee for each transfer.
+     */
+    struct TransferFeeTier {
+        /**
+         * To reach this fee tier, the combined original value of the 
+         * transferred licenses must be at least this value in Euro-Cents.
+         */
+        uint64 minimumLicenseValue;
+
+        /**
+         * The percentage of the original license's value that must be paid as a 
+         * transfer fee in 0.01%.
+         */
+        uint16 fee;
+    }
+
+    /**
      * Asserts that the message is sent by the contract's issuer.
      */
     modifier onlyIssuer() {
@@ -112,6 +130,14 @@ contract LicenseContract {
      * `openssl dgst -sha256 -sign privateKey.key -hex CertificateText.txt`
      */
     bytes public signature;
+
+    /**
+     * The transfer fees that are required to be paid depending on the 
+     * transferred license value. Ordered in ascending order based on 
+     * `TransferFeeTier.minimumLicenseValue`. If empty, a transfer fee of 0% is 
+     * assumed.
+     */
+    TransferFeeTier[] transferFeeTiers;
 
     /**
      * The issuances created by this license contract. The issuance with 
@@ -591,6 +617,104 @@ contract LicenseContract {
         emit Revoke(issuanceNumber);
     }
 
+    // Transfer fees
+
+    /**
+     * Set the percentual fees that are required to be paid for each transfer,
+     * depending on value of the licenses transferred.
+     *
+     * `minimumLicenseValues` and `fees` have to have the same length. 
+     *
+     * `minimumLicenseValues` determines the license value in Euro-Cents from 
+     * which value onwards the fee at the same index in the `fees` array will be 
+     * charged.
+     *
+     * `fees` contains the percentual fees in 0.01% that are charged for each 
+     * license transfer, based on the transferred license's original value.
+     *
+     * Example:
+     * `mimimumLicenseValues: [0], fees: [20]` sets a constant fee of 0.2% for 
+     * every license transfer
+     *
+     * `minimumLicenseValue: [0, 200000], fees: [50, 20]` set a fee of 0.5% 
+     * whenever less than 2000.00€ worth of licenses are transferred in one 
+     * transaction and a 0.2% fee whenever licenses originally worth 2000.00€ or 
+     * more are transferred.
+     *
+     * @param minimumLicenseValues The license values that define the limits of 
+     *                             the given fee tiers
+     * @param fees The fee that will be charged when entering the fee tier 
+     *             described by `minimumLicenseValues` in 0.01%.
+     */
+    function setTransferFeeTiers(uint64[] calldata minimumLicenseValues, uint16[] calldata fees) external onlyLOBRoot {
+        require(minimumLicenseValues.length == fees.length);
+
+        // Shorten the transferFeeTiers array to the correct length
+        while (transferFeeTiers.length > minimumLicenseValues.length) {
+            transferFeeTiers.pop();
+        }
+
+        uint64 lastMinimumValue = 0;
+        for (uint i = 0; i < minimumLicenseValues.length; i++) {
+            // Require that the license values are sorted in ascending order
+            require(i == 0 || lastMinimumValue < minimumLicenseValues[i]);
+            lastMinimumValue = minimumLicenseValues[i];
+
+            // Insert the value into the transfer fee tiers array
+            if (i < transferFeeTiers.length) {
+                // Replace an existing value
+                transferFeeTiers[i] = TransferFeeTier(minimumLicenseValues[i], fees[i]);
+            } else {
+                // Add a new value at the end
+                transferFeeTiers.push(TransferFeeTier(minimumLicenseValues[i], fees[i]));
+            }
+        }
+    }
+
+    /**
+     * Return the fee (in Euro-Cents) that is required to be paid when 
+     * transferring licenses with combined value `licenseValue` in Euro-Cents.
+     *
+     * @param licenseValue The combined value of the licenses to be transferred
+     *                     in Euro-Cents
+     * @return The transfer fee in Euro-Cents
+     */
+    function getTransferFee(uint64 licenseValue) public view returns (uint64) {
+        uint16 fee = 0;
+        for (uint i = 0; i < transferFeeTiers.length; i++) {
+            TransferFeeTier storage tier = transferFeeTiers[i];
+            if (tier.minimumLicenseValue > licenseValue) {
+                // We have reached a tier that is beyond the current limit. 
+                break;
+            } else {
+                fee = tier.fee;
+            }
+        }
+        return (licenseValue * fee) / 10000;
+    }
+
+    /**
+     * Return the number of transfer fee tiers that have been set up for this 
+     * license contract.
+     *
+     * @return The number of transfer fee tiers
+     */
+    function getTransferFeeTiersCount() external view returns (uint) {
+        return transferFeeTiers.length;
+    }
+
+    /**
+     * Return the `minimumLicenseValue` and `fee` for the transfer fee tier at 
+     * the given index.
+     *
+     * @param index Retrieve the `index`th transfer fee tier. Has to be less 
+     *              than `getTransferFeeTiersCount()`.
+     * @return The `minimumLicenseValue` and `fee` for the `index`th tier.
+     */
+    function getTransferFeeTier(uint index) external view returns (uint64, uint16) {
+        TransferFeeTier storage tier = transferFeeTiers[index];
+        return (tier.minimumLicenseValue, tier.fee);
+    }
 
 
     // Management interface

@@ -120,7 +120,7 @@ contract("License issuing", function(unnamedAccounts) {
   it("works if called by the issuer and exactly the right issuance fee is transmitted", async () => {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
-    lobAssert.transactionCost(transaction, 208004, "license issuing");
+    lobAssert.transactionCost(transaction, 208132, "license issuing");
     assert.equal(await licenseContract.issuancesCount(), 1);
     await lobAssert.relevantIssuances(accounts.firstOwner, [0]);
   });
@@ -190,7 +190,7 @@ contract("License transfer", function(unnamedAccounts) {
   it("can transfer less licenses than currently owned by the sender", async () => {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
-    lobAssert.transactionCost(transaction, 79000, "transfer");
+    lobAssert.transactionCost(transaction, 79064, "transfer");
     await lobAssert.balance(0, accounts.firstOwner, 50);
     await lobAssert.balance(0, accounts.secondOwner, 20);
     await lobAssert.relevantIssuances(accounts.secondOwner, [0]);
@@ -255,7 +255,7 @@ contract("Temporary license transfer", function(unnamedAccounts) {
   it("results in correct balances for both sides", async () => {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.transferTemporarily(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
-    lobAssert.transactionCost(transaction, 140709, "transferTemporarily");
+    lobAssert.transactionCost(transaction, 140773, "transferTemporarily");
     await lobAssert.balance(0, accounts.firstOwner, 50);
     await lobAssert.balance(0, accounts.secondOwner, 20);
     await lobAssert.temporaryBalance(0, accounts.firstOwner, 0);
@@ -505,5 +505,80 @@ contract("Taking over management", function(unnamedAccounts) {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.revoke(1, "", {from: accounts.manager});
     assert.equal(new Issuance(await licenseContract.issuances(1)).revoked, true);
+  });
+});
+
+contract('Transfer fee', function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
+
+  it('is initially 0', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    assert.equal(await licenseContract.getTransferFeeTiersCount(), 0);
+    assert.equal(await licenseContract.getTransferFee(0), 0);
+    assert.equal(await licenseContract.getTransferFee(1000), 0);
+  });
+
+  it('cannot be set by anyone but the LOB root', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await truffleAssert.fails(licenseContract.setTransferFeeTiers([0], [1], {from: accounts.issuer}));
+  });
+
+  it('can be set by the LOB root', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await licenseContract.setTransferFeeTiers([0, 1000], [100, 50], {from: accounts.lobRoot});
+    await lobAssert.transferFeeTiers([[0, 100], [1000, 50]]);
+
+    // Extend the transfer fees
+    await licenseContract.setTransferFeeTiers([0, 1000, 2000], [100, 50, 40], {from: accounts.lobRoot});
+    await lobAssert.transferFeeTiers([[0, 100], [1000, 50], [2000, 40]]);
+
+    // Remove tiers
+    await licenseContract.setTransferFeeTiers([20], [30], {from: accounts.lobRoot});
+    await lobAssert.transferFeeTiers([[20, 30]]);
+
+    // Remove all tiers
+    await licenseContract.setTransferFeeTiers([], [], {from: accounts.lobRoot});
+    await lobAssert.transferFeeTiers([]);
+  });
+
+  it('fails if more fees than mimimumLicenseValues are passed', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await truffleAssert.fails(licenseContract.setTransferFeeTiers([0], [100, 200], {from: accounts.issuer}));
+  });
+
+  it('fails if less fees than mimimumLicenseValues are passed', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await truffleAssert.fails(licenseContract.setTransferFeeTiers([0, 1000], [100], {from: accounts.lobRoot}));
+  });
+
+  it('fails if the tiers are not sorted in ascending order', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await truffleAssert.fails(licenseContract.setTransferFeeTiers([0, 1000, 500], [100, 50, 70], {from: accounts.lobRoot}));
+  });
+
+  it('works if the fee goes up again', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await licenseContract.setTransferFeeTiers([0, 1000, 2000], [100, 50, 70], {from: accounts.lobRoot});
+    await lobAssert.transferFeeTiers([[0, 100], [1000, 50], [2000, 70]]);
+  });
+
+  it('fails if the same minimumLicenseValue is used twice', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await truffleAssert.fails(licenseContract.setTransferFeeTiers([100, 100], [100, 50], {from: accounts.lobRoot}));
+  })
+
+  it('are correctly computed using getTransferFee', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await licenseContract.setTransferFeeTiers([0, 1000, 2000], [100, 50, 40], {from: accounts.lobRoot});
+
+    assert.equal(await licenseContract.getTransferFee(0), 0);
+    assert.equal(await licenseContract.getTransferFee(100), 1);
+    assert.equal(await licenseContract.getTransferFee(199), 1);
+    assert.equal(await licenseContract.getTransferFee(200), 2);
+    assert.equal(await licenseContract.getTransferFee(900), 9);
+    assert.equal(await licenseContract.getTransferFee(1000), 5);
+    assert.equal(await licenseContract.getTransferFee(1200), 6);
+    assert.equal(await licenseContract.getTransferFee(2000), 8);
+    assert.equal(await licenseContract.getTransferFee(200000), 800);
   });
 });
