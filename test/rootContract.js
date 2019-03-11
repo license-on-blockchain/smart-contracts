@@ -6,6 +6,14 @@ const Accounts = require('./lib/Accounts.js');
 const LicenseContract = artifacts.require("./LicenseContract.sol");
 const RootContract = artifacts.require("./RootContract.sol");
 
+async function getLicenseContract(creationTransation) {
+  const creationLogs = creationTransation.logs.filter((log) => log.event == "LicenseContractCreation");
+  assert.equal(creationLogs.length, 1);
+  const creationLog = creationLogs[0];
+  const licenseContractAddress = creationLog.args.licenseContractAddress;
+  return await LicenseContract.at(licenseContractAddress);
+}
+
 contract("Root contract constructor", function(unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
 
@@ -94,11 +102,7 @@ contract("Withdrawal from license contracts", function(unnamedAccounts) {
   before(async () => {
     rootContract = await RootContract.deployed();
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    const creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
-    assert.equal(creationLogs.length, 1);
-    const creationLog = creationLogs[0];
-    const licenseContractAddress = creationLog.args.licenseContractAddress;
-    licenseContract = await LicenseContract.at(licenseContractAddress);
+    licenseContract = await getLicenseContract(transaction);
     await licenseContract.sign("0x50", {from: accounts.issuer});
     await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
   });
@@ -130,11 +134,7 @@ contract("Setting a license contract's issuance fee", function(unnamedAccounts) 
   before(async () => {
     rootContract = await RootContract.deployed();
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    const creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
-    assert.equal(creationLogs.length, 1);
-    const creationLog = creationLogs[0];
-    const licenseContractAddress = creationLog.args.licenseContractAddress;
-    licenseContract = await LicenseContract.at(licenseContractAddress);
+    licenseContract = await getLicenseContract(transaction);
   });
 
   it("cannot be done by anyone but the root contract owner", async () => {
@@ -173,11 +173,7 @@ contract("Creating a new license contract", function(unnamedAccounts) {
     rootContract = await RootContract.deployed();
     await rootContract.setDefaultIssuanceFee(950, {from: accounts.lobRootOwner});
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    const creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
-    assert.equal(creationLogs.length, 1);
-    const creationLog = creationLogs[0];
-    const licenseContractAddress = creationLog.args.licenseContractAddress;
-    licenseContract = await LicenseContract.at(licenseContractAddress);
+    licenseContract = await getLicenseContract(transaction);
   });
 
   it("does not consume too much gas", async () => {
@@ -225,11 +221,7 @@ contract("License contract control takeover", function(unnamedAccounts) {
   before(async () => {
     rootContract = await RootContract.deployed();
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    const creationLogs = transaction.logs.filter(function(log) {return log.event == "LicenseContractCreation"});
-    assert.equal(creationLogs.length, 1);
-    const creationLog = creationLogs[0];
-    const licenseContractAddress = creationLog.args.licenseContractAddress;
-    licenseContract = await LicenseContract.at(licenseContractAddress);
+    licenseContract = await getLicenseContract(transaction);
   });
 
   it("cannot be initiated by anyone but the root contract's owner", async () => {
