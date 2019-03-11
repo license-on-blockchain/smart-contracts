@@ -1,14 +1,15 @@
 const Accounts = {
   getNamed(unnamedAccounts) {
     return {
-      lobRootOwner: unnamedAccounts[0],
-      lobRoot: unnamedAccounts[1],
-      issuer: unnamedAccounts[2],
-      firstOwner: unnamedAccounts[3],
-      secondOwner: unnamedAccounts[4],
-      thirdOwner: unnamedAccounts[5],
-      fourthOwner: unnamedAccounts[6],
-      manager: unnamedAccounts[7]
+      // Don't use unnamedAccounts[0] as it's the default for transactions
+      lobRootOwner: unnamedAccounts[1],
+      lobRoot: unnamedAccounts[2],
+      issuer: unnamedAccounts[3],
+      firstOwner: unnamedAccounts[4],
+      secondOwner: unnamedAccounts[5],
+      thirdOwner: unnamedAccounts[6],
+      fourthOwner: unnamedAccounts[7],
+      manager: unnamedAccounts[8]
     }
   }
 }
