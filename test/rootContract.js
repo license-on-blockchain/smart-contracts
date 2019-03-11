@@ -234,19 +234,31 @@ contract("License contract control takeover", function(unnamedAccounts) {
   });
 });
 
-contract("Default transfer fees tiers", function(unnamedAccounts) {
+contract("Transfer fees tiers", function(unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
 
-  it('are empty if nothing else is set', async () => {
+  it('are empty if no default is set', async () => {
     const rootContract = await RootContract.deployed();
     lobAssert.defaultTransferFeeTiers(rootContract, []);
-    
+
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    const licenseContract = await getLicenseContractAddress(transaction);
+    const licenseContract = await getLicenseContract(transaction);
     await lobAssert.transferFeeTiers(licenseContract, []);
   });
 
-  it('are inherited by a newly created license contract', async () => {
+  it('can be changed per license contract', async () => {
+    const rootContract = await RootContract.deployed();
+
+    const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+    const licenseContract = await getLicenseContract(transaction);
+
+    await lobAssert.transferFeeTiers(licenseContract, []);
+
+    await rootContract.setLicenseContractTransferFeeTiers(licenseContract.address, [0, 1000], [100, 50], {from: accounts.lobRootOwner});
+    await lobAssert.transferFeeTiers(licenseContract, [[0, 100], [1000, 50]]);
+  });
+
+  it('are inherited by a newly created license contract from the root contract\'s default', async () => {
     const rootContract = await RootContract.deployed();
     await rootContract.setDefaultTransferFeeTiers([0, 1000], [100, 50], {from: accounts.lobRootOwner});
     lobAssert.defaultTransferFeeTiers(rootContract, [[0, 100], [1000, 50]]);
@@ -256,8 +268,8 @@ contract("Default transfer fees tiers", function(unnamedAccounts) {
     await lobAssert.transferFeeTiers(licenseContract, [[0, 100], [1000, 50]]);
   });
 
-  it('cannot be changed by anyone but the owner', async () => {
+  it('defaults cannot be changed by anyone but the owner', async () => {
     const rootContract = await RootContract.deployed();
     await truffleAssert.fails(rootContract.setDefaultTransferFeeTiers([0, 1000], [100, 50], {from: accounts.firstOwner}));
-  })
+  });
 });

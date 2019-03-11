@@ -28,22 +28,22 @@ const lobAssert = {
   },
   async transferFeeTiers(licenseContract, tiers) {
     const count = await licenseContract.getTransferFeeTiersCount();
-    assert.equal(count, tiers.length);
+    assert.equal(count, tiers.length, "transferFeeTiers.length");
 
     for (let i = 0; i < tiers.length; i++) {
       const tier = await licenseContract.getTransferFeeTier(i);
-      assert.equal(tiers[i][0], tier[0], "transferFeeTier[" + i + "].minimumLicenseValue");
-      assert.equal(tiers[i][1], tier[1], "transferFeeTier[" + i + "].fee");
+      assert.equal(tiers[i][0], tier[0], "transferFeeTiers[" + i + "].minimumLicenseValue");
+      assert.equal(tiers[i][1], tier[1], "transferFeeTiers[" + i + "].fee");
     }
   },
   async defaultTransferFeeTiers(rootContract, tiers) {
     const count = await rootContract.getDefaultTransferFeeTiersCount();
-    assert.equal(count, tiers.length);
+    assert.equal(count, tiers.length, "defaultTransferFeeTiers.length");
 
     for (let i = 0; i < tiers.length; i++) {
       const tier = await rootContract.getDefaultTransferFeeTier(i);
-      assert.equal(tiers[i][0], tier[0], "defaultTransferFeeTier[" + i + "].minimumLicenseValue");
-      assert.equal(tiers[i][1], tier[1], "defaultTransferFeeTier[" + i + "].fee");
+      assert.equal(tiers[i][0], tier[0], "defaultTransferFeeTiers[" + i + "].minimumLicenseValue");
+      assert.equal(tiers[i][1], tier[1], "defaultTransferFeeTiers[" + i + "].fee");
     }
   },
   transactionCost(transaction, expectedCost, methodName) {

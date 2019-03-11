@@ -237,6 +237,18 @@ contract RootContract {
         return (tier.minimumLicenseValue, tier.fee);
     }
 
+    /**
+     * Set the transfer fee tiers on the given license contract. 
+     *
+     * Can only be invoked by the root contract's owner
+     *
+     * See documentation of `LicenseContract.setTransferFeeTiers` for 
+     * documentation of the parameters.
+     */
+    function setLicenseContractTransferFeeTiers(LicenseContract licenseContract, uint64[] calldata minimumLicenseValues, uint16[] calldata fees) external onlyOwner {
+        licenseContract.setTransferFeeTiers(minimumLicenseValues, fees);
+    }
+
     // Managing license contracts
 
     /**
