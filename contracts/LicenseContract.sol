@@ -17,24 +17,7 @@ contract EtherPriceOracleInterface {
 contract LicenseContract {
 
     using LicenseContractLib for LicenseContractLib.Issuance[];
-
-    /**
-     * A tier determining the percentage of a license's value that is required 
-     * to be paid as a fee for each transfer.
-     */
-    struct TransferFeeTier {
-        /**
-         * To reach this fee tier, the combined original value of the 
-         * transferred licenses must be at least this value in Euro-Cents.
-         */
-        uint64 minimumLicenseValue;
-
-        /**
-         * The percentage of the original license's value that must be paid as a 
-         * transfer fee in 0.01%.
-         */
-        uint16 fee;
-    }
+    using LicenseContractLib for LicenseContractLib.TransferFeeTier[];
 
     /**
      * Asserts that the message is sent by the contract's issuer.
@@ -154,7 +137,7 @@ contract LicenseContract {
      * `TransferFeeTier.minimumLicenseValue`. If empty, a transfer fee of 0% is 
      * assumed.
      */
-    TransferFeeTier[] transferFeeTiers;
+    LicenseContractLib.TransferFeeTier[] transferFeeTiers;
 
     /**
      * The issuances created by this license contract. The issuance with 
@@ -659,28 +642,7 @@ contract LicenseContract {
      *             described by `minimumLicenseValues` in 0.01%.
      */
     function setTransferFeeTiers(uint64[] calldata minimumLicenseValues, uint16[] calldata fees) external onlyLOBRoot {
-        require(minimumLicenseValues.length == fees.length);
-
-        // Shorten the transferFeeTiers array to the correct length
-        while (transferFeeTiers.length > minimumLicenseValues.length) {
-            transferFeeTiers.pop();
-        }
-
-        uint64 lastMinimumValue = 0;
-        for (uint i = 0; i < minimumLicenseValues.length; i++) {
-            // Require that the license values are sorted in ascending order
-            require(i == 0 || lastMinimumValue < minimumLicenseValues[i]);
-            lastMinimumValue = minimumLicenseValues[i];
-
-            // Insert the value into the transfer fee tiers array
-            if (i < transferFeeTiers.length) {
-                // Replace an existing value
-                transferFeeTiers[i] = TransferFeeTier(minimumLicenseValues[i], fees[i]);
-            } else {
-                // Add a new value at the end
-                transferFeeTiers.push(TransferFeeTier(minimumLicenseValues[i], fees[i]));
-            }
-        }
+        transferFeeTiers.set(minimumLicenseValues, fees);
     }
 
     /**
@@ -694,7 +656,7 @@ contract LicenseContract {
     function getTransferFee(uint64 licenseValue) public view returns (uint64) {
         uint16 fee = 0;
         for (uint i = 0; i < transferFeeTiers.length; i++) {
-            TransferFeeTier storage tier = transferFeeTiers[i];
+            LicenseContractLib.TransferFeeTier storage tier = transferFeeTiers[i];
             if (tier.minimumLicenseValue > licenseValue) {
                 // We have reached a tier that is beyond the current limit. 
                 break;
@@ -724,7 +686,7 @@ contract LicenseContract {
      * @return The `minimumLicenseValue` and `fee` for the `index`th tier.
      */
     function getTransferFeeTier(uint index) external view returns (uint64, uint16) {
-        TransferFeeTier storage tier = transferFeeTiers[index];
+        LicenseContractLib.TransferFeeTier storage tier = transferFeeTiers[index];
         return (tier.minimumLicenseValue, tier.fee);
     }
 

@@ -3,6 +3,11 @@ pragma solidity ^0.5.0;
 import "./StringUtils.sol";
 
 library LicenseContractLib {
+
+    // =========================================================================
+    // Handling issuances
+    // =========================================================================
+
     struct Issuance {
         /*
          * A human-readable description of the type of license managed by this
@@ -168,6 +173,10 @@ library LicenseContractLib {
         emit Reclaim(issuanceNumber, from, /*to*/msg.sender, amount);
     }
 
+    // =========================================================================
+    // Building the certificate text
+    // =========================================================================
+
     function buildCertificateText(string storage issuerName, address licenseContract, uint8 safekeepingPeriod, string storage liability) public pure returns (string memory) {
         string memory s = StringUtils.concat(
             "Wir, ",
@@ -181,5 +190,53 @@ library LicenseContractLib {
             " Jahren archiviert.\n\n",
             liability);
         return s;
+    }
+
+    // =========================================================================
+    // Handling the transfer fee tiers
+    // =========================================================================
+
+
+    /**
+     * A tier determining the percentage of a license's value that is required 
+     * to be paid as a fee for each transfer.
+     */
+    struct TransferFeeTier {
+        /**
+         * To reach this fee tier, the combined original value of the 
+         * transferred licenses must be at least this value in Euro-Cents.
+         */
+        uint64 minimumLicenseValue;
+
+        /**
+         * The percentage of the original license's value that must be paid as a 
+         * transfer fee in 0.01%.
+         */
+        uint16 fee;
+    }
+
+    function set(TransferFeeTier[] storage transferFeeTiers, uint64[] calldata minimumLicenseValues, uint16[] calldata fees) external {
+        require(minimumLicenseValues.length == fees.length);
+
+        // Shorten the transferFeeTiers array to the correct length
+        while (transferFeeTiers.length > minimumLicenseValues.length) {
+            transferFeeTiers.pop();
+        }
+
+        uint64 lastMinimumValue = 0;
+        for (uint i = 0; i < minimumLicenseValues.length; i++) {
+            // Require that the license values are sorted in ascending order
+            require(i == 0 || lastMinimumValue < minimumLicenseValues[i]);
+            lastMinimumValue = minimumLicenseValues[i];
+
+            // Insert the value into the transfer fee tiers array
+            if (i < transferFeeTiers.length) {
+                // Replace an existing value
+                transferFeeTiers[i] = LicenseContractLib.TransferFeeTier(minimumLicenseValues[i], fees[i]);
+            } else {
+                // Add a new value at the end
+                transferFeeTiers.push(LicenseContractLib.TransferFeeTier(minimumLicenseValues[i], fees[i]));
+            }
+        }
     }
 }
