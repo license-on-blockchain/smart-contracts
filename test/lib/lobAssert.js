@@ -36,6 +36,16 @@ const lobAssert = {
       assert.equal(tiers[i][1], tier[1], "transferFeeTier[" + i + "].fee");
     }
   },
+  async defaultTransferFeeTiers(rootContract, tiers) {
+    const count = await rootContract.getDefaultTransferFeeTiersCount();
+    assert.equal(count, tiers.length);
+
+    for (let i = 0; i < tiers.length; i++) {
+      const tier = await rootContract.getDefaultTransferFeeTier(i);
+      assert.equal(tiers[i][0], tier[0], "defaultTransferFeeTier[" + i + "].minimumLicenseValue");
+      assert.equal(tiers[i][1], tier[1], "defaultTransferFeeTier[" + i + "].fee");
+    }
+  },
   transactionCost(transaction, expectedCost, methodName) {
     assert.isAtMost(transaction.receipt.gasUsed, expectedCost + 64, "Regression in gas usage for " + methodName + " by " + (transaction.receipt.gasUsed - expectedCost) + " gas");
     assert.isAtLeast(transaction.receipt.gasUsed, expectedCost - 64, "🎉 Improvement in gas usage for " + methodName + " by " + (expectedCost - transaction.receipt.gasUsed) + " gas");

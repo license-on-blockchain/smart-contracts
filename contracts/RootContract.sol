@@ -4,6 +4,8 @@ import "./LicenseContract.sol";
 
 contract RootContract {
 
+    using LicenseContractLib for LicenseContractLib.TransferFeeTier[];
+
     /**
      * Assert that the message is sent by the root contract's owner 
      */
@@ -51,6 +53,13 @@ contract RootContract {
      * Euros.
      */
     EtherPriceOracleInterface private etherPriceOracle;
+
+
+    /**
+     * The defaul transfer fee tiers to be set on newly created license 
+     * contracts.
+     */
+    LicenseContractLib.TransferFeeTier[] defaultTransferFeeTiers;
 
     /** 
      * The addresses of all license contracts created by this root contract.
@@ -120,10 +129,20 @@ contract RootContract {
      */
     function createLicenseContract(string calldata issuerName, string calldata liability, uint8 safekeepingPeriod, bytes calldata issuerSSLCertificate) external payable notDisabled returns (LicenseContract) {
         require(msg.value >= registrationFee);
-        LicenseContract licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee, etherPriceOracle);
-        licenseContracts.push(licenseContractAddress);
-        emit LicenseContractCreation(licenseContractAddress);
-        return licenseContractAddress;
+        LicenseContract licenseContract = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee, etherPriceOracle);
+
+        uint64[] memory minimumLicenseValues = new uint64[](defaultTransferFeeTiers.length);
+        uint16[] memory fees = new uint16[](defaultTransferFeeTiers.length);
+        for (uint i = 0; i < defaultTransferFeeTiers.length; i++) {
+            LicenseContractLib.TransferFeeTier storage tier = defaultTransferFeeTiers[i];
+            minimumLicenseValues[i] = tier.minimumLicenseValue;
+            fees[i] = tier.fee;
+        }
+        licenseContract.setTransferFeeTiers(minimumLicenseValues, fees);
+
+        licenseContracts.push(licenseContract);
+        emit LicenseContractCreation(licenseContract);
+        return licenseContract;
     }
 
     // Retrieving license contract addresses
@@ -182,6 +201,40 @@ contract RootContract {
      */
     function setRegistrationFee(uint128 newRegistrationFee) external onlyOwner {
         registrationFee = newRegistrationFee;
+    }
+
+    // Transfer fees
+
+    /**
+     * Set the default transfer fee tiers for newly created license contracts.
+     * See the documentation of LicenseContract.setTransferFeeTiers for 
+     * documentation of the parameters.
+     */
+    function setDefaultTransferFeeTiers(uint64[] calldata minimumLicenseValues, uint16[] calldata fees) external onlyOwner {
+        defaultTransferFeeTiers.set(minimumLicenseValues, fees);
+    }
+
+    /**
+     * Return the number of transfer fee tiers that will be created for new 
+     * license contracts.
+     *
+     * @return The number of transfer fee tiers for new license contracts
+     */
+    function getDefaultTransferFeeTiersCount() external view returns (uint) {
+        return defaultTransferFeeTiers.length;
+    }
+
+    /**
+     * Return the `minimumLicenseValue` and `fee` for the transfer fee tier at 
+     * the given index.
+     *
+     * @param index Retrieve the `index`th transfer fee tier. Has to be less 
+     *              than `getTransferFeeTiersCount()`.
+     * @return The `minimumLicenseValue` and `fee` for the `index`th tier.
+     */
+    function getDefaultTransferFeeTier(uint index) external view returns (uint64, uint16) {
+        LicenseContractLib.TransferFeeTier storage tier = defaultTransferFeeTiers[index];
+        return (tier.minimumLicenseValue, tier.fee);
     }
 
     // Managing license contracts
