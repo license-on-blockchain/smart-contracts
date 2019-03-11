@@ -1,29 +1,23 @@
 const LicenseContract = artifacts.require("./LicenseContract.sol");
 
 const lobAssert = {
-  async relevantIssuances(owner, expectedRelevantissuanceNumbers) {
-    const licenseContract = await LicenseContract.deployed();
+  async relevantIssuances(licenseContract, owner, expectedRelevantissuanceNumbers) {
     assert.equal(await licenseContract.relevantIssuancesCount(owner), expectedRelevantissuanceNumbers.length);
   
     for (var i = 0; i < expectedRelevantissuanceNumbers.length; i++) {
       assert.equal(await licenseContract.relevantIssuances(owner, i), expectedRelevantissuanceNumbers[i], "relevantIssuances[" + i + "]");
     }
   },
-  async balance(issuanceNumber, account, balance) {
-    const licenseContract = await LicenseContract.deployed();
+  async balance(licenseContract, issuanceNumber, account, balance) {
     assert.equal(await licenseContract.balance(issuanceNumber, account), balance);
   },
-  async temporaryBalance(issuanceNumber, account, balance) {
-    const licenseContract = await LicenseContract.deployed();
+  async temporaryBalance(licenseContract, issuanceNumber, account, balance) {
     assert.equal(await licenseContract.temporaryBalance(issuanceNumber, account), balance);
   },
-  async temporaryBalanceReclaimableBy(issuanceNumber, account, reclaimer, balance) {
-    const licenseContract = await LicenseContract.deployed();
+  async temporaryBalanceReclaimableBy(licenseContract, issuanceNumber, account, reclaimer, balance) {
     assert.equal(await licenseContract.temporaryBalanceReclaimableBy(issuanceNumber, account, reclaimer), balance);
   },
-  async temporaryLicenseHolders(issuanceNumber, originalOwner, expectedTemporaryLicenseHolders) {
-    const licenseContract = await LicenseContract.deployed();
-
+  async temporaryLicenseHolders(licenseContract, issuanceNumber, originalOwner, expectedTemporaryLicenseHolders) {
     const count = await licenseContract.temporaryLicenseHoldersCount(issuanceNumber, originalOwner);
     assert.equal(count, expectedTemporaryLicenseHolders.length);
   
@@ -32,9 +26,7 @@ const lobAssert = {
       assert.equal(temporaryLicenseHolder, expectedTemporaryLicenseHolders[i], "temporaryLicenseHolders[" + i + "]");
     }
   },
-  async transferFeeTiers(tiers) {
-    const licenseContract = await LicenseContract.deployed();
-
+  async transferFeeTiers(licenseContract, tiers) {
     const count = await licenseContract.getTransferFeeTiersCount();
     assert.equal(count, tiers.length);
 

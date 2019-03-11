@@ -122,7 +122,7 @@ contract("License issuing", function(unnamedAccounts) {
     const transaction = await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     lobAssert.transactionCost(transaction, 208132, "license issuing");
     assert.equal(await licenseContract.issuancesCount(), 1);
-    await lobAssert.relevantIssuances(accounts.firstOwner, [0]);
+    await lobAssert.relevantIssuances(licenseContract, accounts.firstOwner, [0]);
   });
 
   it("sets the description", async () => {
@@ -164,7 +164,7 @@ contract("License issuing", function(unnamedAccounts) {
   it("initially assigns all licenses to the initial owner", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
-    await lobAssert.balance(0, accounts.firstOwner, 70);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 70);
   });
 });
 
@@ -191,18 +191,18 @@ contract("License transfer", function(unnamedAccounts) {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
     lobAssert.transactionCost(transaction, 82264, "transfer");
-    await lobAssert.balance(0, accounts.firstOwner, 50);
-    await lobAssert.balance(0, accounts.secondOwner, 20);
-    await lobAssert.relevantIssuances(accounts.secondOwner, [0]);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 50);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 20);
+    await lobAssert.relevantIssuances(licenseContract, accounts.secondOwner, [0]);
   });
 
   it("can transfer licenses from the second owner to a third owner", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.transfer(0, accounts.thirdOwner, 15, {from:accounts.secondOwner});
-    await lobAssert.balance(0, accounts.firstOwner, 50);
-    await lobAssert.balance(0, accounts.secondOwner, 5);
-    await lobAssert.balance(0, accounts.thirdOwner, 15);
-    await lobAssert.relevantIssuances(accounts.thirdOwner, [0]);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 50);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 5);
+    await lobAssert.balance(licenseContract, 0, accounts.thirdOwner, 15);
+    await lobAssert.relevantIssuances(licenseContract, accounts.thirdOwner, [0]);
   });
 
   it("cannot transfer licenses twice", async () => {
@@ -218,28 +218,28 @@ contract("License transfer", function(unnamedAccounts) {
   it("can transfer licenses to from one user to himself", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.transfer(0, accounts.secondOwner, 5, {from:accounts.secondOwner});
-    await lobAssert.balance(0, accounts.firstOwner, 50);
-    await lobAssert.balance(0, accounts.secondOwner, 5);
-    await lobAssert.balance(0, accounts.thirdOwner, 15);
-    await lobAssert.relevantIssuances(accounts.secondOwner, [0, 0]);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 50);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 5);
+    await lobAssert.balance(licenseContract, 0, accounts.thirdOwner, 15);
+    await lobAssert.relevantIssuances(licenseContract, accounts.secondOwner, [0, 0]);
   });
 
   it("can transfer 0 licenses", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.transfer(0, accounts.fourthOwner, 0, {from:accounts.fourthOwner});
-    await lobAssert.balance(0, accounts.firstOwner, 50);
-    await lobAssert.balance(0, accounts.secondOwner, 5);
-    await lobAssert.balance(0, accounts.thirdOwner, 15);
-    await lobAssert.balance(0, accounts.fourthOwner, 0);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 50);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 5);
+    await lobAssert.balance(licenseContract, 0, accounts.thirdOwner, 15);
+    await lobAssert.balance(licenseContract, 0, accounts.fourthOwner, 0);
   });
 
   it("can transfer licenses back to the previous owner", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.transfer(0, accounts.secondOwner, 15, {from:accounts.thirdOwner});
-    await lobAssert.balance(0, accounts.firstOwner, 50);
-    await lobAssert.balance(0, accounts.secondOwner, 20);
-    await lobAssert.balance(0, accounts.thirdOwner, 0);
-    await lobAssert.relevantIssuances(accounts.secondOwner, [0, 0, 0]);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 50);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 20);
+    await lobAssert.balance(licenseContract, 0, accounts.thirdOwner, 0);
+    await lobAssert.relevantIssuances(licenseContract, accounts.secondOwner, [0, 0, 0]);
   });
 });
 
@@ -256,47 +256,47 @@ contract("Temporary license transfer", function(unnamedAccounts) {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.transferTemporarily(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     lobAssert.transactionCost(transaction, 140773, "transferTemporarily");
-    await lobAssert.balance(0, accounts.firstOwner, 50);
-    await lobAssert.balance(0, accounts.secondOwner, 20);
-    await lobAssert.temporaryBalance(0, accounts.firstOwner, 0);
-    await lobAssert.temporaryBalance(0, accounts.secondOwner, 20);
-    await lobAssert.temporaryBalanceReclaimableBy(0, accounts.firstOwner, accounts.firstOwner, 50);
-    await lobAssert.temporaryBalanceReclaimableBy(0, accounts.firstOwner, accounts.secondOwner, 0);
-    await lobAssert.temporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.firstOwner, 20);
-    await lobAssert.temporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.secondOwner, 0);
-    await lobAssert.relevantIssuances(accounts.firstOwner, [0]);
-    await lobAssert.relevantIssuances(accounts.secondOwner, [0]);
-    await lobAssert.temporaryLicenseHolders(0, accounts.firstOwner, [accounts.secondOwner]);
-    await lobAssert.temporaryLicenseHolders(0, accounts.secondOwner, []);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 50);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 20);
+    await lobAssert.temporaryBalance(licenseContract, 0, accounts.firstOwner, 0);
+    await lobAssert.temporaryBalance(licenseContract, 0, accounts.secondOwner, 20);
+    await lobAssert.temporaryBalanceReclaimableBy(licenseContract, 0, accounts.firstOwner, accounts.firstOwner, 50);
+    await lobAssert.temporaryBalanceReclaimableBy(licenseContract, 0, accounts.firstOwner, accounts.secondOwner, 0);
+    await lobAssert.temporaryBalanceReclaimableBy(licenseContract, 0, accounts.secondOwner, accounts.firstOwner, 20);
+    await lobAssert.temporaryBalanceReclaimableBy(licenseContract, 0, accounts.secondOwner, accounts.secondOwner, 0);
+    await lobAssert.relevantIssuances(licenseContract, accounts.firstOwner, [0]);
+    await lobAssert.relevantIssuances(licenseContract, accounts.secondOwner, [0]);
+    await lobAssert.temporaryLicenseHolders(licenseContract, 0, accounts.firstOwner, [accounts.secondOwner]);
+    await lobAssert.temporaryLicenseHolders(licenseContract, 0, accounts.secondOwner, []);
   });
 
   it("allows the sender to reclaim the licenses in one piece", async () => {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.reclaim(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     lobAssert.transactionCost(transaction, 22943, "reclaim");
-    await lobAssert.balance(0, accounts.firstOwner, 70);
-    await lobAssert.balance(0, accounts.secondOwner, 0);
-    await lobAssert.temporaryBalance(0, accounts.firstOwner, 0);
-    await lobAssert.temporaryBalance(0, accounts.secondOwner, 0);
-    await lobAssert.temporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.firstOwner, 0);
-    await lobAssert.relevantIssuances(accounts.firstOwner, [0]);
-    await lobAssert.relevantIssuances(accounts.secondOwner, [0]);
-    await lobAssert.temporaryLicenseHolders(0, accounts.firstOwner, [accounts.secondOwner]);
-    await lobAssert.temporaryLicenseHolders(0, accounts.secondOwner, []);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 70);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 0);
+    await lobAssert.temporaryBalance(licenseContract, 0, accounts.firstOwner, 0);
+    await lobAssert.temporaryBalance(licenseContract, 0, accounts.secondOwner, 0);
+    await lobAssert.temporaryBalanceReclaimableBy(licenseContract, 0, accounts.secondOwner, accounts.firstOwner, 0);
+    await lobAssert.relevantIssuances(licenseContract, accounts.firstOwner, [0]);
+    await lobAssert.relevantIssuances(licenseContract, accounts.secondOwner, [0]);
+    await lobAssert.temporaryLicenseHolders(licenseContract, 0, accounts.firstOwner, [accounts.secondOwner]);
+    await lobAssert.temporaryLicenseHolders(licenseContract, 0, accounts.secondOwner, []);
   });
 
   it("allows the sender to reclaim the licenses piece by piece", async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.transferTemporarily(0, accounts.secondOwner, 20, {from: accounts.firstOwner});
     await licenseContract.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner});
-    await lobAssert.balance(0, accounts.firstOwner, 55);
-    await lobAssert.balance(0, accounts.secondOwner, 15);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 55);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 15);
     await licenseContract.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner});
-    await lobAssert.balance(0, accounts.firstOwner, 60);
-    await lobAssert.balance(0, accounts.secondOwner, 10);
-    await lobAssert.temporaryBalance(0, accounts.firstOwner, 0);
-    await lobAssert.temporaryBalance(0, accounts.secondOwner, 10);
-    await lobAssert.temporaryBalanceReclaimableBy(0, accounts.secondOwner, accounts.firstOwner, 10);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 60);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 10);
+    await lobAssert.temporaryBalance(licenseContract, 0, accounts.firstOwner, 0);
+    await lobAssert.temporaryBalance(licenseContract, 0, accounts.secondOwner, 10);
+    await lobAssert.temporaryBalanceReclaimableBy(licenseContract, 0, accounts.secondOwner, accounts.firstOwner, 10);
   });
 
   it("does not allow the temporary owner to transfer the licenses on", async () => {
@@ -526,19 +526,19 @@ contract('Transfer fee', function(unnamedAccounts) {
   it('can be set by the LOB root', async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.setTransferFeeTiers([0, 1000], [100, 50], {from: accounts.lobRoot});
-    await lobAssert.transferFeeTiers([[0, 100], [1000, 50]]);
+    await lobAssert.transferFeeTiers(licenseContract, [[0, 100], [1000, 50]]);
 
     // Extend the transfer fees
     await licenseContract.setTransferFeeTiers([0, 1000, 2000], [100, 50, 40], {from: accounts.lobRoot});
-    await lobAssert.transferFeeTiers([[0, 100], [1000, 50], [2000, 40]]);
+    await lobAssert.transferFeeTiers(licenseContract, [[0, 100], [1000, 50], [2000, 40]]);
 
     // Remove tiers
     await licenseContract.setTransferFeeTiers([20], [30], {from: accounts.lobRoot});
-    await lobAssert.transferFeeTiers([[20, 30]]);
+    await lobAssert.transferFeeTiers(licenseContract, [[20, 30]]);
 
     // Remove all tiers
     await licenseContract.setTransferFeeTiers([], [], {from: accounts.lobRoot});
-    await lobAssert.transferFeeTiers([]);
+    await lobAssert.transferFeeTiers(licenseContract, []);
   });
 
   it('fails if more fees than mimimumLicenseValues are passed', async () => {
@@ -559,7 +559,7 @@ contract('Transfer fee', function(unnamedAccounts) {
   it('works if the fee goes up again', async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.setTransferFeeTiers([0, 1000, 2000], [100, 50, 70], {from: accounts.lobRoot});
-    await lobAssert.transferFeeTiers([[0, 100], [1000, 50], [2000, 70]]);
+    await lobAssert.transferFeeTiers(licenseContract, [[0, 100], [1000, 50], [2000, 70]]);
   });
 
   it('fails if the same minimumLicenseValue is used twice', async () => {
@@ -603,7 +603,7 @@ contract('Transfer fee', function(unnamedAccounts) {
     await truffleAssert.fails(licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 40000}));
     await truffleAssert.passes(licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 50000}));
 
-    await lobAssert.balance(0, accounts.firstOwner, 20 - 1 - 2 - 10);
-    await lobAssert.balance(0, accounts.secondOwner, 1 + 2 + 10);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 20 - 1 - 2 - 10);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 1 + 2 + 10);
   });
 });
