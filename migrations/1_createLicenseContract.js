@@ -1,12 +1,17 @@
-var LicenseContract = artifacts.require("LicenseContract");
-var LicenseContractLib = artifacts.require("LicenseContractLib");
-var RootContract = artifacts.require("RootContract");
-var Accounts = require('../test/lib/Accounts.js');
+const EtherPriceOracleStub = artifacts.require("EtherPriceOracleStub");
+const LicenseContract = artifacts.require("LicenseContract");
+const LicenseContractLib = artifacts.require("LicenseContractLib");
+const RootContract = artifacts.require("RootContract");
+const Accounts = require('../test/lib/Accounts.js');
 
-module.exports = function(deployer, network, unnamedAccounts) {
+module.exports = async function(deployer, network, unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
-  deployer.deploy(LicenseContractLib);
-  deployer.link(LicenseContractLib, [LicenseContract, RootContract]);
-  deployer.deploy(LicenseContract, accounts.issuer, "Soft&Cloud", "We are not liable for anything!", 10, '0x0ce8', 500/*wei*/, {from: accounts.lobRoot});
-  deployer.deploy(RootContract, {from: accounts.lobRootOwner});
+  
+  await deployer.deploy(EtherPriceOracleStub);
+  const etherPriceOracle = (await EtherPriceOracleStub.deployed()).address;
+
+  await deployer.deploy(LicenseContractLib);
+  await deployer.link(LicenseContractLib, [LicenseContract, RootContract]);
+  await deployer.deploy(LicenseContract, accounts.issuer, "Soft&Cloud", "We are not liable for anything!", 10, '0x0ce8', 500/*wei*/, etherPriceOracle, {from: accounts.lobRoot});
+  await deployer.deploy(RootContract, etherPriceOracle, {from: accounts.lobRootOwner});
 };

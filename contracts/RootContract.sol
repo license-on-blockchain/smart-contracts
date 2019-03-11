@@ -46,6 +46,12 @@ contract RootContract {
      */
     uint128 public registrationFee;
 
+    /**
+     * The oracle that is used to query the current conversion rate of Ether to 
+     * Euros.
+     */
+    EtherPriceOracleInterface private etherPriceOracle;
+
     /** 
      * The addresses of all license contracts created by this root contract.
      */
@@ -77,8 +83,11 @@ contract RootContract {
 
     /**
      * Create a new root contract whose owner is set to the message sender.
+     * @param _etherPriceOracle The oracle that is queried to get the current 
+     *                          conversion rate of Ether to Euro.
      */
-    constructor() public {
+    constructor(EtherPriceOracleInterface _etherPriceOracle) public {
+        etherPriceOracle = _etherPriceOracle;
         owner = msg.sender;
     }
 
@@ -111,7 +120,7 @@ contract RootContract {
      */
     function createLicenseContract(string calldata issuerName, string calldata liability, uint8 safekeepingPeriod, bytes calldata issuerSSLCertificate) external payable notDisabled returns (LicenseContract) {
         require(msg.value >= registrationFee);
-        LicenseContract licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee);
+        LicenseContract licenseContractAddress = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee, etherPriceOracle);
         licenseContracts.push(licenseContractAddress);
         emit LicenseContractCreation(licenseContractAddress);
         return licenseContractAddress;

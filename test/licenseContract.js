@@ -190,7 +190,7 @@ contract("License transfer", function(unnamedAccounts) {
   it("can transfer less licenses than currently owned by the sender", async () => {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
-    lobAssert.transactionCost(transaction, 79064, "transfer");
+    lobAssert.transactionCost(transaction, 82264, "transfer");
     await lobAssert.balance(0, accounts.firstOwner, 50);
     await lobAssert.balance(0, accounts.secondOwner, 20);
     await lobAssert.relevantIssuances(accounts.secondOwner, [0]);
@@ -580,5 +580,30 @@ contract('Transfer fee', function(unnamedAccounts) {
     assert.equal(await licenseContract.getTransferFee(1200), 6);
     assert.equal(await licenseContract.getTransferFee(2000), 8);
     assert.equal(await licenseContract.getTransferFee(200000), 800);
+  });
+
+  it('is required to transfer licenses', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await licenseContract.sign("0x051381", {from: accounts.issuer});
+    await licenseContract.setTransferFeeTiers([0, 10000, 20000], [100, 50, 40], {from: accounts.lobRoot});
+    // 0€ => 1%
+    // 100€ => 0.5%
+    // 200€ => 0.4%
+    
+    await licenseContract.issueLicense("Desc", "Code", /*originalValue=*/1000, accounts.firstOwner, 20, "Remark", 1509552789, {from: accounts.issuer, value: 7000});
+    // Original value = 10€
+
+    // Required transfer fee for 1 license: 10€ * 1% = 10ct = 10000 Wei (1ct = 1000 Wei in EtherPriceOracleStub)
+    // Required transfer fee per license for 10 license: 10€ * 0.5% = 5ct = 5000 Wei (1ct = 1000 Wei in EtherPriceOracleStub)
+    await truffleAssert.fails(licenseContract.transfer(0, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 0}));
+    await truffleAssert.fails(licenseContract.transfer(0, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 9000}));
+    await truffleAssert.passes(licenseContract.transfer(0, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 10000}));
+    await truffleAssert.fails(licenseContract.transfer(0, accounts.secondOwner, 2, {from: accounts.firstOwner, value: 10000}));
+    await truffleAssert.passes(licenseContract.transfer(0, accounts.secondOwner, 2, {from: accounts.firstOwner, value: 20000}));
+    await truffleAssert.fails(licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 40000}));
+    await truffleAssert.passes(licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 50000}));
+
+    await lobAssert.balance(0, accounts.firstOwner, 20 - 1 - 2 - 10);
+    await lobAssert.balance(0, accounts.secondOwner, 1 + 2 + 10);
   });
 });

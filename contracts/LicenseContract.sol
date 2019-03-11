@@ -2,6 +2,18 @@ pragma solidity ^0.5.0;
 
 import "./LicenseContractLib.sol";
 
+/**
+ * Interface to an oracle that provides the current conversion rate of Ether to 
+ * Euro.
+ */
+contract EtherPriceOracleInterface {
+    /**
+     * @param euro Euro-Cents to convert to Ether
+     * @return The number of Ethers corresponding to `euro` in Wei
+     */
+    function eurToEth(uint euro) public returns (uint);
+}
+
 contract LicenseContract {
 
     using LicenseContractLib for LicenseContractLib.Issuance[];
@@ -129,6 +141,12 @@ contract LicenseContract {
      * `openssl dgst -sha256 -sign privateKey.key -hex CertificateText.txt`
      */
     bytes public signature;
+
+    /**
+     * The oracle that is used to query the current conversion rate of Ether to 
+     * Euros.
+     */
+    EtherPriceOracleInterface private etherPriceOracle;
 
     /**
      * The transfer fees that are required to be paid depending on the 
@@ -269,13 +287,15 @@ contract LicenseContract {
         string memory _liability,
         uint8 _safekeepingPeriod,
         bytes memory _issuerSSLCertificate,
-        uint128 _issuanceFee
+        uint128 _issuanceFee,
+        EtherPriceOracleInterface _etherPriceOracle
     ) public {
         issuer = _issuer;
         issuerName = _issuerName;
         liability = _liability;
         issuerSSLCertificate = _issuerSSLCertificate;
         safekeepingPeriod = _safekeepingPeriod;
+        etherPriceOracle = _etherPriceOracle;
         
         lobRoot = msg.sender;
 
@@ -529,7 +549,11 @@ contract LicenseContract {
      * @param to The address the licenses shall be transferred to
      * @param amount The number of licenses that shall be transferred
      */
-    function transfer(uint256 issuanceNumber, address to, uint64 amount) external {
+    function transfer(uint256 issuanceNumber, address to, uint64 amount) external payable {
+        uint64 licenseValue = issuances[issuanceNumber].originalValue * amount;
+        uint64 euroFee = getTransferFee(licenseValue);
+        uint etherFee = etherPriceOracle.eurToEth(euroFee);
+        require(msg.value >= etherFee);
         relevantIssuances[to].push(issuanceNumber);
         issuances.transferFromMessageSender(issuanceNumber, to, amount);
     }
