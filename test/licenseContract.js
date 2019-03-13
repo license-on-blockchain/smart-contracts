@@ -48,11 +48,6 @@ contract("LicenseContract constructor", function(unnamedAccounts) {
     assert.equal(await licenseContract.safekeepingPeriod(), 10);
   });
 
-  it("should set the issuance fee", async () => {
-    const licenseContract = await LicenseContract.deployed();
-    assert.equal(await licenseContract.issuanceFee(), 500/*wei*/);
-  });
-
   it("should set the LOB root to the sender's address", async () => {
     const licenseContract = await LicenseContract.deployed();
     assert.equal(await licenseContract.lobRoot(), accounts.lobRoot);
@@ -66,6 +61,11 @@ contract("LicenseContract constructor", function(unnamedAccounts) {
   it("should set the manager address to 0x0", async () => {
     const licenseContract = await LicenseContract.deployed();
     assert.equal(await licenseContract.managerAddress(), '0x0000000000000000000000000000000000000000');
+  });
+
+  it("issuance fee factor is set manually", async () => {
+    const licenseContract = await LicenseContract.deployed();
+    assert.equal(await licenseContract.issuanceFeeFactor(), 5000);
   });
 });
 
@@ -115,15 +115,32 @@ contract("License issuing", function(unnamedAccounts) {
 
   it("cannot be performed if the issuance fee is not transmitted", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 10}));
+    licenseContract.setTransferFeeTiers([0, 100000], [100, 50], {from: accounts.lobRoot}); // 0€: 1%, 1000€: 0.5%
+    licenseContract.setIssuanceFeeFactor(5000, {from: accounts.lobRoot}); // 50%
+
+    // Issuance fee: 70 * 10€ * 1% * 50% = 3.50€ = 350ct = 350000 Wei
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 250000}));
   });
 
   it("works if called by the issuer and exactly the right issuance fee is transmitted", async () => {
     const licenseContract = await LicenseContract.deployed();
-    const transaction = await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
-    lobAssert.transactionCost(transaction, 208132, "license issuing");
-    assert.equal(await licenseContract.issuancesCount(), 1);
+    // Fee calculation see above
+    const transaction = await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 350000});
+    lobAssert.transactionCost(transaction, 221882, "license issuing");
     await lobAssert.relevantIssuances(licenseContract, accounts.firstOwner, [0]);
+  });
+
+  it('uses the transfer price tiers to calculate the issuance fee', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    // Issuance fee: 100 * 10€ * 0.5% * 50% = 3.50€ = 350ct = 350000 Wei
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.secondOwner, 100, "Remark", 1509552789, {from:accounts.issuer, value: 250000});
+  });
+
+  it('requires the oracle fee to be paid if it is lower than the issuance fee', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    // Issuance fee: 2 * 1€ * 1% * 50% = 1ct = 1000 Wei < 5000 Wei
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/100, accounts.secondOwner, 2, "Remark", 1509552789, {from:accounts.issuer, value: 1000}));
+    await truffleAssert.passes(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/100, accounts.secondOwner, 2, "Remark", 1509552789, {from:accounts.issuer, value: 5000}));
   });
 
   it("sets the description", async () => {
@@ -164,6 +181,7 @@ contract("License issuing", function(unnamedAccounts) {
 
   it("initially assigns all licenses to the initial owner", async () => {
     const licenseContract = await LicenseContract.deployed();
+    await licenseContract.setIssuanceFeeFactor(0, {from: accounts.lobRoot});
     await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
     await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 70);
   });
@@ -412,18 +430,18 @@ contract("Disabling the license contract", function(unnamedAccounts) {
   });
 });
 
-contract("Setting the issuance fee", function(unnamedAccounts) {
+contract("Setting the issuance fee factor", function(unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
 
   it("can be performed by the LOB root", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.setIssuanceFee(700, {from: accounts.lobRoot});
-    assert.equal(await licenseContract.issuanceFee(), 700);
+    await licenseContract.setIssuanceFeeFactor(10000, {from: accounts.lobRoot});
+    assert.equal(await licenseContract.issuanceFeeFactor(), 10000);
   });
 
   it("cannot be done by anyone but the LOB root", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await truffleAssert.fails(licenseContract.setIssuanceFee(700, {from: accounts.issuer}));
+    await truffleAssert.fails(licenseContract.setIssuanceFeeFactor(700, {from: accounts.issuer}));
   });
 });
 
@@ -515,6 +533,7 @@ contract('Transfer fee', function(unnamedAccounts) {
   before(async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.sign("0x051381", {from: accounts.issuer});
+    await licenseContract.setIssuanceFeeFactor(0, {from: accounts.lobRoot});
   });
 
   it('is initially 0', async () => {
@@ -673,6 +692,7 @@ contract('Issuer transfer fee share', function(unnamedAccounts) {
   before(async () => {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.sign("0x051381", {from: accounts.issuer});
+    await licenseContract.setIssuanceFeeFactor(0, {from: accounts.lobRoot});
   });
 
   it('is initially 0', async () => {

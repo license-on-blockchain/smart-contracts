@@ -37,11 +37,11 @@ contract RootContract {
     bool public disabled;
 
     /**
-     * The issuance fee in Wei that will be set on each newly created license 
-     * contract and which will need to be paid for every issuance on the license 
-     * contract.
+     * The factor that is used to get the fee required to be paid for each 
+     * license issuing from the corresponding transfer fee for every new license 
+     * contract in 0.01%.
      */
-    uint128 public defaultIssuanceFee;
+    uint32 public defaultIssuanceFeeFactor;
 
     /**
      * The percentage of the transfer fee that gets credited to the issuer for 
@@ -137,7 +137,7 @@ contract RootContract {
         require(msg.value >= registrationFee);
         LicenseContract licenseContract = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, etherPriceOracle);
 
-        licenseContract.setIssuanceFee(defaultIssuanceFee);
+        licenseContract.setIssuanceFeeFactor(defaultIssuanceFeeFactor);
         licenseContract.setIssuerTransferFeeShare(defaultIssuerTransferFeeShare);
 
         uint64[] memory minimumLicenseValues = new uint64[](defaultTransferFeeTiers.length);
@@ -169,34 +169,36 @@ contract RootContract {
     // Managing fees
 
     /**
-     * Set the issuance fee of a license contract. 
+     * Set the issuance fee factor of a license contract. 
      * 
-     * See documentation of `LicenseContract.setIssuanceFee` for detailed 
+     * See documentation of `LicenseContract.setIssuanceFeeFactor` for detailed 
      * information.
      *
      * This can only be invoked by the root contract's owner.
      *
      * @param licenseContractAddress The address of the license contract for 
      *                               which the issuance fee shall be changed
-     * @param newFee The new fee that shall be required for every license 
-     *               issuing done through this license contract
+     * @param newFeeFactor The new factor that shall be used to compute the 
+     *                     issuance fee from the transfer fee in 0.01%
      */
-    function setLicenseContractIssuanceFee(address licenseContractAddress, uint128 newFee) external onlyOwner {
-        LicenseContract(licenseContractAddress).setIssuanceFee(newFee);
+    function setLicenseContractIssuanceFeeFactor(address licenseContractAddress, uint32 newFeeFactor) external onlyOwner {
+        LicenseContract(licenseContractAddress).setIssuanceFeeFactor(newFeeFactor);
     }
 
     /**
-     * Set the issuance fee that is set on every newly created license contract 
-     * and which is thus required for every issuance made by that license 
-     * contract.
+     * Set the issuance fee factor for newly created license contracts.
+     *
+     * See documentation of `LicenseContract.setIssuanceFeeFactor` for detailed 
+     * information.
      *
      * This can only be invoked by the root contract's owner.
      *
-     * @param newDefaultFee The new default issuance fee that shall be set on 
-     *                      every newly created license contract
+     * @param newDefaultFeeFactor The new default factor that shall be used to 
+     *                            compute the issuance fee from the transfer fee 
+     *                            in 0.01%
      */
-    function setDefaultIssuanceFee(uint128 newDefaultFee) external onlyOwner {
-        defaultIssuanceFee = newDefaultFee;
+    function setDefaultIssuanceFeeFactor(uint32 newDefaultFeeFactor) external onlyOwner {
+        defaultIssuanceFeeFactor = newDefaultFeeFactor;
     }
 
     /**

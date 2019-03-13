@@ -58,23 +58,30 @@ contract("Root contract registration fee", function(unnamedAccounts) {
   });
 });
 
-contract("Root contract default issuance fee", function(unnamedAccounts) {
+contract("Root contract default issuance fee factor", function(unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
 
   it("is initially set to 0", async () => {
     const rootContract = await RootContract.deployed();
-    assert.equal(await rootContract.defaultIssuanceFee(), 0);
+    assert.equal(await rootContract.defaultIssuanceFeeFactor(), 0);
   });
 
   it("cannot be changed from any address but the owner", async () => {
     const rootContract = await RootContract.deployed();
-    await truffleAssert.fails(rootContract.setDefaultIssuanceFee(500, {from:accounts.firstOwner}));
+    await truffleAssert.fails(rootContract.setDefaultIssuanceFeeFactor(5000, {from:accounts.firstOwner}));
   });
 
   it("can be changed by the owner", async () => {
     const rootContract = await RootContract.deployed();
-    await rootContract.setDefaultIssuanceFee(800, {from: accounts.lobRootOwner});
-    assert.equal(await rootContract.defaultIssuanceFee(), 800);
+    await rootContract.setDefaultIssuanceFeeFactor(5000, {from: accounts.lobRootOwner});
+    assert.equal(await rootContract.defaultIssuanceFeeFactor(), 5000);
+  });
+
+  it('should be inherited by newly created license contract', async () => {
+    const rootContract = await RootContract.deployed();
+    const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer, value: 1100});
+    const licenseContract = await getLicenseContract(transaction);
+    assert.equal(await licenseContract.issuanceFeeFactor(), 5000);
   });
 });
 
@@ -125,7 +132,7 @@ contract("Withdrawal from license contracts", function(unnamedAccounts) {
   });
 });
 
-contract("Setting a license contract's issuance fee", function(unnamedAccounts) {
+contract("Setting a license contract's issuance fee factor", function(unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
 
   let rootContract;
@@ -138,12 +145,12 @@ contract("Setting a license contract's issuance fee", function(unnamedAccounts) 
   });
 
   it("cannot be done by anyone but the root contract owner", async () => {
-    await truffleAssert.fails(rootContract.setLicenseContractIssuanceFee(licenseContract.address, 50, {from: accounts.firstOwner}));
+    await truffleAssert.fails(rootContract.setLicenseContractIssuanceFeeFactor(licenseContract.address, 7000, {from: accounts.firstOwner}));
   });
 
   it("can be done by the root contract owner", async () => {
-    await rootContract.setLicenseContractIssuanceFee(licenseContract.address, 50, {from: accounts.lobRootOwner});
-    assert.equal(await licenseContract.issuanceFee(), 50);
+    await rootContract.setLicenseContractIssuanceFeeFactor(licenseContract.address, 7000, {from: accounts.lobRootOwner});
+    assert.equal(await licenseContract.issuanceFeeFactor(), 7000);
   });
 });
 
@@ -171,14 +178,14 @@ contract("Creating a new license contract", function(unnamedAccounts) {
 
   before(async () => {
     rootContract = await RootContract.deployed();
-    await rootContract.setDefaultIssuanceFee(950, {from: accounts.lobRootOwner});
+    await rootContract.setDefaultIssuanceFeeFactor(6000, {from: accounts.lobRootOwner});
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     licenseContract = await getLicenseContract(transaction);
   });
 
   it("does not consume too much gas", async () => {
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    lobAssert.transactionCost(transaction, 3268039, "createLicenseContract");
+    lobAssert.transactionCost(transaction, 3347671, "createLicenseContract");
   });
 
   it("saves the license contract address in the root contract", async () => {
@@ -191,7 +198,7 @@ contract("Creating a new license contract", function(unnamedAccounts) {
   });
 
   it("has the default issuance fee set as issuance fee", async () => {
-    assert.equal(await licenseContract.issuanceFee(), 950);
+    assert.equal(await licenseContract.issuanceFeeFactor(), 6000);
   });
 
   it("carries the issuer's name", async () => {
@@ -294,7 +301,7 @@ contract('Default transfer fee share', function(unnamedAccounts) {
   it('cannot be set by anyone but the root contact owner', async () => {
     const rootContract = await RootContract.deployed();
 
-    await truffleAssert.fails(rootContract.setDefaultIssuanceFee(5000, {from: accounts.firstOwner}));
+    await truffleAssert.fails(rootContract.setDefaultIssuanceFeeFactor(5000, {from: accounts.firstOwner}));
   });
 
   it('is inherited by newly created license contracts', async () => {

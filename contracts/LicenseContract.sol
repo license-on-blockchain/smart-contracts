@@ -90,11 +90,10 @@ contract LicenseContract {
     bytes public issuerSSLCertificate;
 
     /**
-     * The fee in Wei that is required to be paid for every license issuance 
-     * under this license contract. The fees are collected in the license 
-     * contract and may be withdrawn by the LOB root.
+     * The factor that is used to get the fee required to be paid for each 
+     * license issuing from the corresponding transfer fee in 0.01%.
      */
-    uint128 public issuanceFee;
+    uint32 public issuanceFeeFactor;
 
     /**
      * The LOB root address that is allowed to set the issuance fee, withdraw 
@@ -223,14 +222,12 @@ contract LicenseContract {
     event Revoke(uint256 indexed issuanceNumber);
 
     /**
-     * Fired when the issuance fee required to issue new licenses changes. 
-     * This  event is also fired once from the license contract's constructor 
-     * with the initial issuance fee for this license contract.
+     * Fired when the issuance fee factor changes. 
      *
-     * @param newFee The new fee that is required to be paid every time an 
-     *               issuance is created
+     * @param newFeeFactor The new factor that is used to get the issuance fee from 
+     *                     the transfer fee.
      */
-    event IssuanceFeeChange(uint128 newFee);
+    event IssuanceFeeFactorChange(uint32 newFeeFactor);
 
     /**
      * Fired when the smart contract gets signed.
@@ -380,13 +377,30 @@ contract LicenseContract {
         // The license contract hasn't be initialised completely if it has not 
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
-        require(msg.value >= issuanceFee);
+        require(msg.value >= getIssuanceFee(originalValue, numLicenses));
         uint issuanceNumber = issuances.insert(licenseDescription, licenseCode, numLicenses, originalValue, auditTime, auditRemark);
         relevantIssuances[initialOwnerAddress].push(issuanceNumber);
         issuances.createInitialLicenses(issuanceNumber, numLicenses, initialOwnerAddress);
     }
 
-
+    /**
+     * Calculate the issuance fee that is required to be paid to issue 
+     * `numLicenses` each worth `originalValue`.
+     */
+    function getIssuanceFee(uint64 originalValue, uint64 numLicenses) private returns (uint) {
+        // Original value (uint64) * numLicenses (uint64) fits into uint128
+        uint128 licenseValue = uint128(originalValue) * numLicenses;
+        // getTransferFee (uint136) * issuanceFeeFactor (uint32) fits into 
+        // uint168. Devision by 10000 >= 2^8 make the result fit into uint160
+        uint160 euroFee = uint160((uint168(getTransferFee(licenseValue)) * issuanceFeeFactor) / 10000);
+        uint etherFee = 0;
+        uint oracleFee = 0;
+        if (euroFee != 0) {
+            oracleFee = etherPriceOracle.fee();
+            etherFee = etherPriceOracle.eurToEth.value(oracleFee)(euroFee);
+        }
+        return (oracleFee > etherFee) ? oracleFee : etherFee;
+    }
 
     // Caches
 
@@ -540,7 +554,7 @@ contract LicenseContract {
     function transfer(uint256 issuanceNumber, address to, uint64 amount) external payable {
         // Original value (uint64) * amount (uint64) fits into uint128
         uint128 licenseValue = uint128(issuances[issuanceNumber].originalValue) * amount;
-        uint144 euroFee = getTransferFee(licenseValue);
+        uint136 euroFee = getTransferFee(licenseValue);
         uint etherFee = 0;
         uint oracleFee = 0;
         if (euroFee != 0) {
@@ -680,7 +694,7 @@ contract LicenseContract {
      *                     in Euro-Cents
      * @return The transfer fee in Euro-Cents
      */
-    function getTransferFee(uint128 licenseValue) public view returns (uint144) {
+    function getTransferFee(uint128 licenseValue) public view returns (uint136) {
         uint16 fee = 0;
         for (uint i = 0; i < transferFeeTiers.length; i++) {
             LicenseContractLib.TransferFeeTier storage tier = transferFeeTiers[i];
@@ -691,8 +705,9 @@ contract LicenseContract {
                 fee = tier.fee;
             }
         }
-        // licenseValue (uint128) * fee (uint16) fits into uint256
-        return (uint144(licenseValue) * fee) / 10000;
+        // licenseValue (uint128) * fee (uint16) fits into uint144
+        // 10000 > 2^8, hence the overall result fits into a uint136
+        return uint136((uint144(licenseValue) * fee) / 10000);
     }
 
     /**
@@ -726,15 +741,16 @@ contract LicenseContract {
     // Management interface
 
     /**
-     * Set the fee required for every license issuance to a new amount. 
+     * Set the factor that is used to get the fee required to be paid for each 
+     * license issuing from the corresponding transfer fee in 0.01%.
      *
      * This can only be done by the LOB root.
      *
-     * @param newFee The new issuance fee in Wei
+     * @param newFeeFactor The new fee factor in 0.01%
      */
-    function setIssuanceFee(uint128 newFee) onlyLOBRoot external {
-        issuanceFee = newFee;
-        emit IssuanceFeeChange(newFee);
+    function setIssuanceFeeFactor(uint32 newFeeFactor) onlyLOBRoot external {
+        issuanceFeeFactor = newFeeFactor;
+        emit IssuanceFeeFactorChange(newFeeFactor);
     }
 
     /**

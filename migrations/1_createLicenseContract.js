@@ -14,6 +14,6 @@ module.exports = async function(deployer, network, unnamedAccounts) {
   await deployer.link(LicenseContractLib, [LicenseContract, RootContract]);
   await deployer.deploy(LicenseContract, accounts.issuer, "Soft&Cloud", "We are not liable for anything!", 10, '0x0ce8', etherPriceOracle, {from: accounts.lobRoot});
   const licenseContract = await LicenseContract.deployed();
-  await licenseContract.setIssuanceFee(500, {from: accounts.lobRoot});
+  await licenseContract.setIssuanceFeeFactor(5000, {from: accounts.lobRoot});
   await deployer.deploy(RootContract, etherPriceOracle, {from: accounts.lobRootOwner});
 };
