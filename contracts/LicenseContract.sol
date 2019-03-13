@@ -100,8 +100,9 @@ contract LicenseContract {
      * fees and take over control of this license contract. 
      * Equal to the creator of this contract. In practice this is the LOB root 
      * contract.
+     * All fees collected for LOB are transferred to this address.
      */
-    address public lobRoot;
+    address payable public lobRoot;
 
     /**
      * The address that is allowed to issue and revoke issuances and disable the 
@@ -377,17 +378,24 @@ contract LicenseContract {
         // The license contract hasn't be initialised completely if it has not 
         // been signed. Thus disallow issuing licenses.
         require(signature.length != 0);
-        require(msg.value >= getIssuanceFee(originalValue, numLicenses));
+        handleIssuanceFee(originalValue, numLicenses);
         uint issuanceNumber = issuances.insert(licenseDescription, licenseCode, numLicenses, originalValue, auditTime, auditRemark);
         relevantIssuances[initialOwnerAddress].push(issuanceNumber);
         issuances.createInitialLicenses(issuanceNumber, numLicenses, initialOwnerAddress);
     }
 
     /**
-     * Calculate the issuance fee that is required to be paid to issue 
-     * `numLicenses` each worth `originalValue`.
+     * Require that the issuance fee that is required to be paid to issue 
+     * `numLicenses` each worth `originalValue`, is transmitted with this 
+     * license. Transfer that fee to the lobRoot.
+     *
+     * @param originalValue The value of each license in Euro-Cents
+     * @param numLicenses The number of licenses that are being issueud
+     * @return 1. The fee that is required to be paid for the issuance 
+     *            (max from the LOB fees and the oracle fee)
+     *         2. The fee that has been paid to the Ether price oracle
      */
-    function getIssuanceFee(uint64 originalValue, uint64 numLicenses) private returns (uint) {
+    function handleIssuanceFee(uint64 originalValue, uint64 numLicenses) private {
         // Original value (uint64) * numLicenses (uint64) fits into uint128
         uint128 licenseValue = uint128(originalValue) * numLicenses;
         // getTransferFee (uint136) * issuanceFeeFactor (uint32) fits into 
@@ -397,9 +405,11 @@ contract LicenseContract {
         uint oracleFee = 0;
         if (euroFee != 0) {
             oracleFee = etherPriceOracle.fee();
+            require(msg.value >= oracleFee);
             etherFee = etherPriceOracle.eurToEth.value(oracleFee)(euroFee);
         }
-        return (oracleFee > etherFee) ? oracleFee : etherFee;
+        require(msg.value >= etherFee);
+        lobRoot.transfer(msg.value - oracleFee);
     }
 
     // Caches
@@ -577,6 +587,7 @@ contract LicenseContract {
         // There are not enough ether to make the multiplication overflow
         uint issuerShare = remainingFee * issuerTransferFeeShare / 10000;
         issuer.transfer(issuerShare);
+        lobRoot.transfer(remainingFee - issuerShare);
 
         relevantIssuances[to].push(issuanceNumber);
         issuances.transferFromMessageSender(issuanceNumber, to, amount);
@@ -751,19 +762,6 @@ contract LicenseContract {
     function setIssuanceFeeFactor(uint32 newFeeFactor) onlyLOBRoot external {
         issuanceFeeFactor = newFeeFactor;
         emit IssuanceFeeFactorChange(newFeeFactor);
-    }
-
-    /**
-     * Withdraw Ether that have been collected as fees from the license contract
-     * to the address `recipient`. 
-     *
-     * This can only be initiated by the LOB root.
-     *
-     * @param amount The amount that shall be withdrawn in Wei
-     * @param recipient The address that shall receive the withdrawn Ether
-     */
-    function withdraw(uint256 amount, address payable recipient) onlyLOBRoot external {
-        recipient.transfer(amount);
     }
 
     /**

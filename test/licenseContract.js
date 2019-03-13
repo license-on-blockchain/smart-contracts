@@ -3,6 +3,7 @@ const BigNumber = require('bignumber.js');
 const lobAssert = require('./lib/lobAssert.js');
 const Accounts = require('./lib/Accounts.js');
 const LicenseContract = artifacts.require("./LicenseContract.sol");
+const EtherPriceOracleStub = artifacts.require("./EtherPriceOracleStub.sol");
 
 class Issuance {
   constructor(array) {
@@ -126,8 +127,23 @@ contract("License issuing", function(unnamedAccounts) {
     const licenseContract = await LicenseContract.deployed();
     // Fee calculation see above
     const transaction = await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 350000});
-    lobAssert.transactionCost(transaction, 221882, "license issuing");
+    lobAssert.transactionCost(transaction, 229668, "license issuing");
     await lobAssert.relevantIssuances(licenseContract, accounts.firstOwner, [0]);
+  });
+
+  it("transfers the fees to the right parties", async () => {
+    const licenseContract = await LicenseContract.deployed();
+    const priceOracle = await EtherPriceOracleStub.deployed();
+    const oldOracleBalance = new BigNumber(await web3.eth.getBalance(priceOracle.address));
+    const oldLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));
+
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 350000});
+
+    const newOracleBalance = new BigNumber(await web3.eth.getBalance(priceOracle.address));
+    const newLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));
+
+    assert.equal(newOracleBalance.minus(oldOracleBalance).toString(), 5000);
+    assert.equal(newLobRootBalance.minus(oldLobRootBalance).toString(), 350000 - 5000);
   });
 
   it('uses the transfer price tiers to calculate the issuance fee', async () => {
@@ -138,9 +154,12 @@ contract("License issuing", function(unnamedAccounts) {
 
   it('requires the oracle fee to be paid if it is lower than the issuance fee', async () => {
     const licenseContract = await LicenseContract.deployed();
+    lobAssert.transferFeeTiers(licenseContract, [[0, 100], [100000, 50]]);
+    assert.equal(await licenseContract.issuanceFeeFactor(), 5000);
+
     // Issuance fee: 2 * 1€ * 1% * 50% = 1ct = 1000 Wei < 5000 Wei
     await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/100, accounts.secondOwner, 2, "Remark", 1509552789, {from:accounts.issuer, value: 1000}));
-    await truffleAssert.passes(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/100, accounts.secondOwner, 2, "Remark", 1509552789, {from:accounts.issuer, value: 5000}));
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/100, accounts.secondOwner, 2, "Remark", 1509552789, {from:accounts.issuer, value: 5000});
   });
 
   it("sets the description", async () => {
@@ -209,7 +228,7 @@ contract("License transfer", function(unnamedAccounts) {
   it("can transfer less licenses than currently owned by the sender", async () => {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
-    lobAssert.transactionCost(transaction, 81486, "transfer");
+    lobAssert.transactionCost(transaction, 82556, "transfer");
     await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 50);
     await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 20);
     await lobAssert.relevantIssuances(licenseContract, accounts.secondOwner, [0]);
@@ -445,28 +464,6 @@ contract("Setting the issuance fee factor", function(unnamedAccounts) {
   });
 });
 
-contract("Withdrawing fees", function(unnamedAccounts) {
-  const accounts = Accounts.getNamed(unnamedAccounts);
-
-  before(async () => {
-    const licenseContract = await LicenseContract.deployed();
-    await licenseContract.sign("0x051381", {from: accounts.issuer});
-  });
-
-  it("can be done by the LOB root", async () => {
-    const licenseContract = await LicenseContract.deployed();
-    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
-    await licenseContract.withdraw(6000, accounts.lobRoot, {from:accounts.lobRoot});
-    await licenseContract.withdraw(1000, accounts.lobRoot, {from:accounts.lobRoot});
-  });
-
-  it("connot be done by anyone but the LOB root", async () => {
-    const licenseContract = await LicenseContract.deployed();
-    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 7000});
-    await truffleAssert.fails(licenseContract.withdraw(6000, accounts.lobRoot, {from:accounts.issuer}));
-  });
-});
-
 contract("Taking over management", function(unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
 
@@ -628,7 +625,7 @@ contract('Transfer fee', function(unnamedAccounts) {
     await truffleAssert.fails(licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 40000}));
     await truffleAssert.passes(licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 50000}));
     const transaction = await licenseContract.transfer(0, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 50000})
-    lobAssert.transactionCost(transaction, 64715, "license transfer with fee");
+    lobAssert.transactionCost(transaction, 72485, "license transfer with fee");
 
     await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 20 - 1 - 2 - 10 - 1);
     await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 1 + 2 + 10 + 1);
@@ -717,14 +714,17 @@ contract('Issuer transfer fee share', function(unnamedAccounts) {
 
   it('are divided between issuer and LOB', async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.setIssuerTransferFeeShare(5000, {from: accounts.lobRoot}); // 50%
+    const etherPriceOracle = await EtherPriceOracleStub.deployed();
+    await licenseContract.setIssuerTransferFeeShare(8000, {from: accounts.lobRoot}); // 50%
     await licenseContract.setTransferFeeTiers([0], [100], {from: accounts.lobRoot});
     // Transfer fee: 1%
 
     await licenseContract.issueLicense("Desc", "Code", /*originalValue=*/1000, accounts.firstOwner, 20, "Remark", 1509552789, {from: accounts.issuer, value: 7000});
     // Issusance number: 0
 
+    const oldOracleBalance = new BigNumber(await web3.eth.getBalance(etherPriceOracle.address));
     const oldIssuerBalance = new BigNumber(await web3.eth.getBalance(accounts.issuer));
+    const oldLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));
 
     // Transfer fee per license: 10€ * 1% = 0.10€ = 10000 Wei
     // Oracle fee: 5000 Wei
@@ -732,8 +732,35 @@ contract('Issuer transfer fee share', function(unnamedAccounts) {
 
     await licenseContract.transfer(0, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 10000});
 
+    const newOracleBalance = new BigNumber(await web3.eth.getBalance(etherPriceOracle.address));
     const newIssuerBalance = new BigNumber(await web3.eth.getBalance(accounts.issuer));
-    const balanceDifference = newIssuerBalance.minus(oldIssuerBalance);
-    assert.equal(balanceDifference.toNumber(), 2500);
+    const newLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));
+
+    assert.equal(newOracleBalance.minus(oldOracleBalance).toNumber(), 5000);
+    assert.equal(newIssuerBalance.minus(oldIssuerBalance).toNumber(), (10000 - 5000) * 0.8);
+    assert.equal(newLobRootBalance.minus(oldLobRootBalance).toNumber(), (10000 - 5000) * 0.2);
+  });
+
+  it('divides superflous fees between LOB and the issuer', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    const etherPriceOracle = await EtherPriceOracleStub.deployed();
+    
+    const oldOracleBalance = new BigNumber(await web3.eth.getBalance(etherPriceOracle.address));
+    const oldIssuerBalance = new BigNumber(await web3.eth.getBalance(accounts.issuer));
+    const oldLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));
+
+    // Transfer fee per license: 10€ * 1% = 0.10€ = 10000 Wei
+    // Oracle fee: 5000 Wei
+    // Issuer share (10000 - 5000) * 50% = 2500 Wei
+
+    await licenseContract.transfer(0, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 15000});
+
+    const newOracleBalance = new BigNumber(await web3.eth.getBalance(etherPriceOracle.address));
+    const newIssuerBalance = new BigNumber(await web3.eth.getBalance(accounts.issuer));
+    const newLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));
+
+    assert.equal(newOracleBalance.minus(oldOracleBalance).toNumber(), 5000);
+    assert.equal(newIssuerBalance.minus(oldIssuerBalance).toNumber(), 8000);
+    assert.equal(newLobRootBalance.minus(oldLobRootBalance).toNumber(), 2000);
   });
 });

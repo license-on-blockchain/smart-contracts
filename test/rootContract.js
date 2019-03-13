@@ -111,24 +111,21 @@ contract("Withdrawal from license contracts", function(unnamedAccounts) {
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
     licenseContract = await getLicenseContract(transaction);
     await licenseContract.sign("0x50", {from: accounts.issuer});
-    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+    await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 5000});
+    await licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 10000})
   });
 
   it("cannot be done by anyone but the root contract owner", async () => {
-    await truffleAssert.fails(rootContract.withdrawFromLicenseContract(licenseContract.address, 500, accounts.thirdOwner, {from: accounts.thirdOwner}));
-  });
-
-  it("cannot be done with root contract as recipient", async () => {
-    await truffleAssert.fails(rootContract.withdrawFromLicenseContract(licenseContract.address, 500, rootContract.address, {from: accounts.lobRootOwner}));
+    await truffleAssert.fails(rootContract.withdraw(accounts.thirdOwner, 15000, {from: accounts.thirdOwner}));
   });
 
   it("can be done by the root contract owner", async () => {
     const originalBalance = await web3.eth.getBalance(accounts.thirdOwner);
-    await rootContract.withdrawFromLicenseContract(licenseContract.address, 500, accounts.thirdOwner, {from: accounts.lobRootOwner});
+    await rootContract.withdraw(accounts.thirdOwner, 15000, {from: accounts.lobRootOwner});
     const newBalance = await web3.eth.getBalance(accounts.thirdOwner);
     const newBalanceNum = new BigNumber(newBalance);
     const originalBalanceNum = new BigNumber(originalBalance);
-    assert.equal(newBalanceNum.minus(originalBalanceNum).toNumber(), 500);
+    assert.equal(newBalanceNum.minus(originalBalanceNum).toNumber(), 15000);
   });
 });
 
@@ -185,7 +182,7 @@ contract("Creating a new license contract", function(unnamedAccounts) {
 
   it("does not consume too much gas", async () => {
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    lobAssert.transactionCost(transaction, 3347671, "createLicenseContract");
+    lobAssert.transactionCost(transaction, 3335756, "createLicenseContract");
   });
 
   it("saves the license contract address in the root contract", async () => {

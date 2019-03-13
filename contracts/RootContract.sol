@@ -169,6 +169,17 @@ contract RootContract {
     // Managing fees
 
     /**
+     * Withdraw fees that have been collected and transfer them to `recipient`.
+     *
+     * @param recipient The address to which the withdrawn fees shall be 
+     *                  transmitted
+     * @param amount The amount of fees that shall be withdrawn in Wei
+     */
+    function withdraw(address payable recipient, uint amount) onlyOwner external {
+        recipient.transfer(amount);
+    }
+
+    /**
      * Set the issuance fee factor of a license contract. 
      * 
      * See documentation of `LicenseContract.setIssuanceFeeFactor` for detailed 
@@ -273,27 +284,6 @@ contract RootContract {
         licenseContract.setTransferFeeTiers(minimumLicenseValues, fees);
     }
 
-    // Managing license contracts
-
-    /**
-     * Withdraw fees collected by a license contract from the license contract 
-     * and transfer them to `recipient`.
-     *
-     * This can only be invoked by the root contract's owner.
-     *
-     * @param licenseContractAddress The address of the license contract from 
-     *                               which collected fees shall be withdrawn
-     * @param amount The amount of Wei that shall be withdrawn from the license 
-     *               contract. Needs to be less than the fees collected by the 
-     *               license contract
-     * @param recipient The address to which the withdrawn Wei should be sent
-     */
-    function withdrawFromLicenseContract(address licenseContractAddress, uint256 amount, address payable recipient) external onlyOwner {
-        LicenseContract(licenseContractAddress).withdraw(amount, recipient);
-    }
-
-    // Managing root contract
-
     /**
      * Set the owner of the root contract to a new address.
      * 
@@ -333,5 +323,12 @@ contract RootContract {
      */
     function takeOverLicenseContractControl(address licenseContractAddress, address managerAddress) external onlyOwner {
         LicenseContract(licenseContractAddress).takeOverManagementControl(managerAddress);
+    }
+
+    /**
+     * Allow the license contract to transfer Ether to the root contact where
+     * they are collected for retrieval by the root contract's owner.
+     */
+    function() payable external {
     }
 }
