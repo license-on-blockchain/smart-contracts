@@ -178,7 +178,7 @@ contract("Creating a new license contract", function(unnamedAccounts) {
 
   it("does not consume too much gas", async () => {
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    lobAssert.transactionCost(transaction, 3102039, "createLicenseContract");
+    lobAssert.transactionCost(transaction, 3245147, "createLicenseContract");
   });
 
   it("saves the license contract address in the root contract", async () => {
@@ -271,5 +271,39 @@ contract("Transfer fees tiers", function(unnamedAccounts) {
   it('defaults cannot be changed by anyone but the owner', async () => {
     const rootContract = await RootContract.deployed();
     await truffleAssert.fails(rootContract.setDefaultTransferFeeTiers([0, 1000], [100, 50], {from: accounts.firstOwner}));
+  });
+});
+
+contract('Default transfer fee share', function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
+
+  it('is initially 0', async () => {
+    const rootContract = await RootContract.deployed();
+
+    assert.equal(await rootContract.defaultIssuerTransferFeeShare(), 0);
+  });
+
+  it('can be set by the root contract owner', async () => {
+    const rootContract = await RootContract.deployed();
+
+    await rootContract.setDefaultIssuerTransferFeeShare(5000, {from: accounts.lobRootOwner}); // 50%
+
+    assert.equal(await rootContract.defaultIssuerTransferFeeShare(), 5000);
+  });
+
+  it('cannot be set by anyone but the root contact owner', async () => {
+    const rootContract = await RootContract.deployed();
+
+    await truffleAssert.fails(rootContract.setDefaultIssuanceFee(5000, {from: accounts.firstOwner}));
+  });
+
+  it('is inherited by newly created license contracts', async () => {
+    const rootContract = await RootContract.deployed();
+
+    assert.equal(await rootContract.defaultIssuerTransferFeeShare(), 5000);
+
+    const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+    const licenseContract = await getLicenseContract(transaction);
+    assert.equal(await licenseContract.issuerTransferFeeShare(), 5000);
   });
 });

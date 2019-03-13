@@ -44,6 +44,12 @@ contract RootContract {
     uint128 public defaultIssuanceFee;
 
     /**
+     * The percentage of the transfer fee that gets credited to the issuer for 
+     * every new license contract.
+     */
+    uint16 public defaultIssuerTransferFeeShare;
+
+    /**
      * The fee in Wei that anyone has to pay to generate a license contract.
      */
     uint128 public registrationFee;
@@ -131,6 +137,8 @@ contract RootContract {
         require(msg.value >= registrationFee);
         LicenseContract licenseContract = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee, etherPriceOracle);
 
+        licenseContract.setIssuerTransferFeeShare(defaultIssuerTransferFeeShare);
+
         uint64[] memory minimumLicenseValues = new uint64[](defaultTransferFeeTiers.length);
         uint16[] memory fees = new uint16[](defaultTransferFeeTiers.length);
         for (uint i = 0; i < defaultTransferFeeTiers.length; i++) {
@@ -188,6 +196,19 @@ contract RootContract {
      */
     function setDefaultIssuanceFee(uint128 newDefaultFee) external onlyOwner {
         defaultIssuanceFee = newDefaultFee;
+    }
+
+    /**
+     * Set the percentage of the transfer fee that gets credited to the issuer 
+     * for every new license contract.
+     *
+     * This can only be invoked by the root contract's owner.
+     *
+     * @param newShare The new percentage of the transfer fees the issuer should 
+     *                 receive on new license contracts.
+     */ 
+    function setDefaultIssuerTransferFeeShare(uint16 newShare) external onlyOwner {
+        defaultIssuerTransferFeeShare = newShare;
     }
 
     /**

@@ -108,7 +108,7 @@ contract LicenseContract {
      * The address that is allowed to issue and revoke issuances and disable the 
      * license contract.
      */
-    address public issuer;
+    address payable public issuer;
 
     /**
      * Whether or not this license contract has been disabled and thus disallows
@@ -129,6 +129,12 @@ contract LicenseContract {
      * `openssl dgst -sha256 -sign privateKey.key -hex CertificateText.txt`
      */
     bytes public signature;
+
+    /**
+     * The percentage of the transfer fees that are credited to the issuer.
+     * In 0.01%.
+     */
+    uint16 public issuerTransferFeeShare;
 
     /**
      * The oracle that is used to query the current conversion rate of Ether to 
@@ -270,7 +276,7 @@ contract LicenseContract {
      *                     issuance in Wei. May be changed later.
      */
     constructor(
-        address _issuer, 
+        address payable _issuer, 
         string memory _issuerName, 
         string memory _liability,
         uint8 _safekeepingPeriod,
@@ -541,13 +547,14 @@ contract LicenseContract {
         uint64 licenseValue = issuances[issuanceNumber].originalValue * amount;
         uint64 euroFee = getTransferFee(licenseValue);
         uint etherFee = 0;
+        uint oracleFee = 0;
         if (euroFee != 0) {
             // A fee is required to be paid for the transfer. Go and ask the 
             // oracle to convert the Euro fee into Ether. 
             // Since the oracle may take a fee as well, we don't want to ask it
             // in case there is nothing to convert.
 
-            uint oracleFee = etherPriceOracle.fee();
+            oracleFee = etherPriceOracle.fee();
             
             // The transmitted fee must be at least big enough to cover the 
             // oracle's fee
@@ -556,6 +563,12 @@ contract LicenseContract {
             etherFee = etherPriceOracle.eurToEth.value(oracleFee)(euroFee);
         }
         require(msg.value >= etherFee);
+        // No undeflow because msg.value >= oracleFee
+        uint remainingFee = msg.value - oracleFee;
+        // There are not enough ether to make the multiplication overflow
+        uint issuerShare = remainingFee * issuerTransferFeeShare / 10000;
+        issuer.transfer(issuerShare);
+
         relevantIssuances[to].push(issuanceNumber);
         issuances.transferFromMessageSender(issuanceNumber, to, amount);
     }
@@ -707,6 +720,10 @@ contract LicenseContract {
     function getTransferFeeTier(uint index) external view returns (uint64, uint16) {
         LicenseContractLib.TransferFeeTier storage tier = transferFeeTiers[index];
         return (tier.minimumLicenseValue, tier.fee);
+    }
+
+    function setIssuerTransferFeeShare(uint16 share) external onlyLOBRoot {
+        issuerTransferFeeShare = share;
     }
 
 
