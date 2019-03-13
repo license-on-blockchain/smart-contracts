@@ -544,8 +544,9 @@ contract LicenseContract {
      * @param amount The number of licenses that shall be transferred
      */
     function transfer(uint256 issuanceNumber, address to, uint64 amount) external payable {
-        uint64 licenseValue = issuances[issuanceNumber].originalValue * amount;
-        uint64 euroFee = getTransferFee(licenseValue);
+        // Original value (uint64) * amount (uint64) fits into uint128
+        uint128 licenseValue = uint128(issuances[issuanceNumber].originalValue) * amount;
+        uint144 euroFee = getTransferFee(licenseValue);
         uint etherFee = 0;
         uint oracleFee = 0;
         if (euroFee != 0) {
@@ -685,7 +686,7 @@ contract LicenseContract {
      *                     in Euro-Cents
      * @return The transfer fee in Euro-Cents
      */
-    function getTransferFee(uint64 licenseValue) public view returns (uint64) {
+    function getTransferFee(uint128 licenseValue) public view returns (uint144) {
         uint16 fee = 0;
         for (uint i = 0; i < transferFeeTiers.length; i++) {
             LicenseContractLib.TransferFeeTier storage tier = transferFeeTiers[i];
@@ -696,7 +697,8 @@ contract LicenseContract {
                 fee = tier.fee;
             }
         }
-        return (licenseValue * fee) / 10000;
+        // licenseValue (uint128) * fee (uint16) fits into uint256
+        return (uint144(licenseValue) * fee) / 10000;
     }
 
     /**
