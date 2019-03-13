@@ -190,7 +190,7 @@ contract("License transfer", function(unnamedAccounts) {
   it("can transfer less licenses than currently owned by the sender", async () => {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
-    lobAssert.transactionCost(transaction, 82264, "transfer");
+    lobAssert.transactionCost(transaction, 80129, "transfer");
     await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 50);
     await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 20);
     await lobAssert.relevantIssuances(licenseContract, accounts.secondOwner, [0]);
@@ -511,6 +511,11 @@ contract("Taking over management", function(unnamedAccounts) {
 contract('Transfer fee', function(unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
 
+  before(async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await licenseContract.sign("0x051381", {from: accounts.issuer});
+  });
+
   it('is initially 0', async () => {
     const licenseContract = await LicenseContract.deployed();
     assert.equal(await licenseContract.getTransferFeeTiersCount(), 0);
@@ -584,13 +589,13 @@ contract('Transfer fee', function(unnamedAccounts) {
 
   it('is required to transfer licenses', async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.sign("0x051381", {from: accounts.issuer});
     await licenseContract.setTransferFeeTiers([0, 10000, 20000], [100, 50, 40], {from: accounts.lobRoot});
     // 0€ => 1%
     // 100€ => 0.5%
     // 200€ => 0.4%
     
     await licenseContract.issueLicense("Desc", "Code", /*originalValue=*/1000, accounts.firstOwner, 20, "Remark", 1509552789, {from: accounts.issuer, value: 7000});
+    // Issuance number 0
     // Original value = 10€
 
     // Required transfer fee for 1 license: 10€ * 1% = 10ct = 10000 Wei (1ct = 1000 Wei in EtherPriceOracleStub)
@@ -602,8 +607,39 @@ contract('Transfer fee', function(unnamedAccounts) {
     await truffleAssert.passes(licenseContract.transfer(0, accounts.secondOwner, 2, {from: accounts.firstOwner, value: 20000}));
     await truffleAssert.fails(licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 40000}));
     await truffleAssert.passes(licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 50000}));
+    const transaction = await licenseContract.transfer(0, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 50000})
+    lobAssert.transactionCost(transaction, 63255, "license transfer with fee");
 
-    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 20 - 1 - 2 - 10);
-    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 1 + 2 + 10);
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 20 - 1 - 2 - 10 - 1);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 1 + 2 + 10 + 1);
+  });
+
+  it('is required to at least cover the oracle fees', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await licenseContract.setTransferFeeTiers([0], [100], {from: accounts.lobRoot});
+    // Transfer fee: 1%
+
+    await licenseContract.issueLicense("Desc", "Code", /*originalValue=*/100, accounts.firstOwner, 20, "Remark", 1509552789, {from: accounts.issuer, value: 7000});
+    // Issuance number 1
+
+    // Required transfer fee according to the fee tiers is: 1€ * 1% = 0.01€ = 1000 Wei (1ct = 1000 Wei in EtherPriceOracleStub)
+    // Oracle fee is 5000 Wei > 1000 Wei
+    await truffleAssert.fails(licenseContract.transfer(1, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 1000}));
+    await truffleAssert.passes(licenseContract.transfer(1, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 5000}));
+  });
+
+
+  it('drop to 0 if the transfer fee is less than 1ct', async () => {
+    // This is due to integer rounding in Solidity
+
+    const licenseContract = await LicenseContract.deployed();
+    await licenseContract.setTransferFeeTiers([0], [100], {from: accounts.lobRoot});
+    // Transfer fee: 1%
+
+    await licenseContract.issueLicense("Desc", "Code", /*originalValue=*/10, accounts.firstOwner, 20, "Remark", 1509552789, {from: accounts.issuer, value: 7000});
+    // Issusance number 2
+
+    // Transfer fee is 0,10€ * 1% = 0,1ct -> 0ct => 0 Wei
+    await truffleAssert.passes(licenseContract.transfer(2, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 0}));
   });
 });

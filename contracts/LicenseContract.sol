@@ -8,10 +8,15 @@ import "./LicenseContractLib.sol";
  */
 contract EtherPriceOracleInterface {
     /**
+     * The fee that is required to be paid for every currency conversion query.
+     */
+    uint public fee;
+
+    /**
      * @param euro Euro-Cents to convert to Ether
      * @return The number of Ethers corresponding to `euro` in Wei
      */
-    function eurToEth(uint euro) public returns (uint);
+    function eurToEth(uint euro) public payable returns (uint);
 }
 
 contract LicenseContract {
@@ -535,7 +540,21 @@ contract LicenseContract {
     function transfer(uint256 issuanceNumber, address to, uint64 amount) external payable {
         uint64 licenseValue = issuances[issuanceNumber].originalValue * amount;
         uint64 euroFee = getTransferFee(licenseValue);
-        uint etherFee = etherPriceOracle.eurToEth(euroFee);
+        uint etherFee = 0;
+        if (euroFee != 0) {
+            // A fee is required to be paid for the transfer. Go and ask the 
+            // oracle to convert the Euro fee into Ether. 
+            // Since the oracle may take a fee as well, we don't want to ask it
+            // in case there is nothing to convert.
+
+            uint oracleFee = etherPriceOracle.fee();
+            
+            // The transmitted fee must be at least big enough to cover the 
+            // oracle's fee
+            require(msg.value >= oracleFee);
+            
+            etherFee = etherPriceOracle.eurToEth.value(oracleFee)(euroFee);
+        }
         require(msg.value >= etherFee);
         relevantIssuances[to].push(issuanceNumber);
         issuances.transferFromMessageSender(issuanceNumber, to, amount);
