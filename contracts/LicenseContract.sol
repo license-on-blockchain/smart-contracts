@@ -272,8 +272,6 @@ contract LicenseContract {
      *                              this contract. See documentation of instance 
      *                              variable `issuerSSLCertificate` for more 
      *                              information.
-     * @param _issuanceFee The fee that is required to be paid for each license 
-     *                     issuance in Wei. May be changed later.
      */
     constructor(
         address payable _issuer, 
@@ -281,7 +279,6 @@ contract LicenseContract {
         string memory _liability,
         uint8 _safekeepingPeriod,
         bytes memory _issuerSSLCertificate,
-        uint128 _issuanceFee,
         EtherPriceOracleInterface _etherPriceOracle
     ) public {
         issuer = _issuer;
@@ -292,9 +289,6 @@ contract LicenseContract {
         etherPriceOracle = _etherPriceOracle;
         
         lobRoot = msg.sender;
-
-        issuanceFee = _issuanceFee;
-        emit IssuanceFeeChange(_issuanceFee);
     }
 
     /**

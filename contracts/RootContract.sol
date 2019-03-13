@@ -135,8 +135,9 @@ contract RootContract {
      */
     function createLicenseContract(string calldata issuerName, string calldata liability, uint8 safekeepingPeriod, bytes calldata issuerSSLCertificate) external payable notDisabled returns (LicenseContract) {
         require(msg.value >= registrationFee);
-        LicenseContract licenseContract = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, defaultIssuanceFee, etherPriceOracle);
+        LicenseContract licenseContract = new LicenseContract(msg.sender, issuerName, liability, safekeepingPeriod, issuerSSLCertificate, etherPriceOracle);
 
+        licenseContract.setIssuanceFee(defaultIssuanceFee);
         licenseContract.setIssuerTransferFeeShare(defaultIssuerTransferFeeShare);
 
         uint64[] memory minimumLicenseValues = new uint64[](defaultTransferFeeTiers.length);
