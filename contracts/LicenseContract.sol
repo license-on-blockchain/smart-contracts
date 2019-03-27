@@ -223,6 +223,24 @@ contract LicenseContract {
     event Revoke(uint256 indexed issuanceNumber);
 
     /**
+     * Fired when the transfer fee tiers change.
+     *
+     * @param minimumLicenseValues The license values that define the limits of 
+     *                             the given fee tiers
+     * @param fees The fee that will be charged when entering the fee tier 
+     *             described by `minimumLicenseValues` in 0.01%.
+     */
+    event TransferFeeTiersChange(uint64[] minimumLicenseValues, uint16[] fees);
+
+    /**
+     * Emitted when the issuer's transfer fee share changes.
+     *
+     * @param newShare The percentage of the transfer fees that shall be 
+     *                 credited to the respective license's issuer in 0.01%
+     */
+    event IssuerTransferFeeShareChanged(uint16 newShare);
+
+    /**
      * Fired when the issuance fee factor changes. 
      *
      * @param newFeeFactor The new factor that is used to get the issuance fee from 
@@ -694,6 +712,7 @@ contract LicenseContract {
      *             described by `minimumLicenseValues` in 0.01%.
      */
     function setTransferFeeTiers(uint64[] calldata minimumLicenseValues, uint16[] calldata fees) external onlyLOBRoot {
+        emit TransferFeeTiersChange(minimumLicenseValues, fees);
         transferFeeTiers.set(minimumLicenseValues, fees);
     }
 
@@ -744,7 +763,17 @@ contract LicenseContract {
         return (tier.minimumLicenseValue, tier.fee);
     }
 
+    /**
+     * Set the share of the transfer fees that are transferred to the issuer of 
+     * the transferred license. The rest remains as the LOB fee.
+     *
+     * @param share The percentage of the transfer fees that shall be 
+     *              credited to the respective license's issuer in 0.01%
+     */
     function setIssuerTransferFeeShare(uint16 share) external onlyLOBRoot {
+        // Don't allow the share to be > 100%
+        require(share <= 10000);
+        emit IssuerTransferFeeShareChanged(share);
         issuerTransferFeeShare = share;
     }
 

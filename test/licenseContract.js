@@ -80,8 +80,9 @@ contract("License contract signature", function(unnamedAccounts) {
 
   it("should be saved when contract is signed", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.sign("0x051381", {from: accounts.issuer});
+    const tx = await licenseContract.sign("0x051381", {from: accounts.issuer});
     assert.equal(await licenseContract.signature(), "0x051381");
+    truffleAssert.eventEmitted(tx, 'Signing');
   });
 
   it("cannot be changed once set", async () => {
@@ -129,6 +130,15 @@ contract("License issuing", function(unnamedAccounts) {
     const transaction = await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 350000});
     lobAssert.transactionCost(transaction, 229668, "license issuing");
     await lobAssert.relevantIssuances(licenseContract, accounts.firstOwner, [0]);
+  });
+
+  it("emits the Issuing event", async () => {
+    const licenseContract = await LicenseContract.deployed();
+    // Fee calculation see above
+    const transaction = await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 350000});
+    truffleAssert.eventEmitted(transaction, 'Issuing', (event) => {
+      return event.issuanceNumber == 1;
+    });
   });
 
   it("transfers the fees to the right parties", async () => {
@@ -279,6 +289,21 @@ contract("License transfer", function(unnamedAccounts) {
     await lobAssert.balance(licenseContract, 0, accounts.thirdOwner, 0);
     await lobAssert.relevantIssuances(licenseContract, accounts.secondOwner, [0, 0, 0]);
   });
+
+  it("emits the Transfer event", async () => {
+    const licenseContract = await LicenseContract.deployed();
+    const transaction = await licenseContract.transfer(0, accounts.firstOwner, 5, {from:accounts.secondOwner});
+    await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 55);
+    await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 15);
+    await lobAssert.balance(licenseContract, 0, accounts.thirdOwner, 0);
+    truffleAssert.eventEmitted(transaction, 'Transfer', (event) => {
+      return event.issuanceNumber == 0 &&
+        event.from == accounts.secondOwner &&
+        event.to == accounts.firstOwner &&
+        event.amount == 5 &&
+        event.temporary == false;
+    });
+  });
 });
 
 contract("Temporary license transfer", function(unnamedAccounts) {
@@ -335,6 +360,31 @@ contract("Temporary license transfer", function(unnamedAccounts) {
     await lobAssert.temporaryBalance(licenseContract, 0, accounts.firstOwner, 0);
     await lobAssert.temporaryBalance(licenseContract, 0, accounts.secondOwner, 10);
     await lobAssert.temporaryBalanceReclaimableBy(licenseContract, 0, accounts.secondOwner, accounts.firstOwner, 10);
+  });
+
+  it("emits the Transfer event", async () => {
+    const licenseContract = await LicenseContract.deployed();
+    const transaction = await licenseContract.transferTemporarily(0, accounts.secondOwner, 5, {from: accounts.firstOwner});
+    
+    truffleAssert.eventEmitted(transaction, 'Transfer', (event) => {
+      return event.issuanceNumber == 0 &&
+        event.from == accounts.firstOwner &&
+        event.to == accounts.secondOwner &&
+        event.amount == 5 &&
+        event.temporary == true;
+    });
+  });
+
+  it("emits the Reclaim event", async () => {
+    const licenseContract = await LicenseContract.deployed();
+    const transaction = await licenseContract.reclaim(0, accounts.secondOwner, 5, {from: accounts.firstOwner});
+    
+    truffleAssert.eventEmitted(transaction, 'Reclaim', (event) => {
+      return event.issuanceNumber == 0 &&
+        event.from == accounts.secondOwner &&
+        event.to == accounts.firstOwner &&
+        event.amount == 5;
+    });
   });
 
   it("does not allow the temporary owner to transfer the licenses on", async () => {
@@ -406,6 +456,15 @@ contract("Revoking an issuing", function(unnamedAccounts) {
     const licenseContract = await LicenseContract.deployed();
     await truffleAssert.fails(licenseContract.transfer(0, accounts.secondOwner, 85, {from:accounts.firstOwner}));
   });
+
+  it("emits the Revoke event", async () => {
+    const licenseContract = await LicenseContract.deployed();
+    await licenseContract.issueLicense("Desc2", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 500});
+    const transaction = await licenseContract.revoke(1, "My revocation reason", {from: accounts.issuer});
+    truffleAssert.eventEmitted(transaction, 'Revoke', (event) => {
+      return event.issuanceNumber == 1;
+    });
+  });
 });
 
 contract("Disabling the license contract", function(unnamedAccounts) {
@@ -434,8 +493,9 @@ contract("Disabling the license contract", function(unnamedAccounts) {
 
   it("can be done by the issuer", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.disable({from: accounts.issuer});
+    const transaction = await licenseContract.disable({from: accounts.issuer});
     assert.equal(await licenseContract.disabled(), true);
+    truffleAssert.eventEmitted(transaction, 'Disabling');
   });
 
   it("does not allow the issuance of licenses after the contract has been disabled", async () => {
@@ -462,6 +522,14 @@ contract("Setting the issuance fee factor", function(unnamedAccounts) {
     const licenseContract = await LicenseContract.deployed();
     await truffleAssert.fails(licenseContract.setIssuanceFeeFactor(700, {from: accounts.issuer}));
   });
+
+  it("emits the IssuanceFeeFactorChange event", async () => {
+    const licenseContract = await LicenseContract.deployed();
+    const transaction = await licenseContract.setIssuanceFeeFactor(20000, {from: accounts.lobRoot});
+    truffleAssert.eventEmitted(transaction, 'IssuanceFeeFactorChange', (event) => {
+      return event.newFeeFactor == 20000;
+    });
+  });
 });
 
 contract("Taking over management", function(unnamedAccounts) {
@@ -481,8 +549,11 @@ contract("Taking over management", function(unnamedAccounts) {
 
   it("can be done by the LOB root", async () => {
     const licenseContract = await LicenseContract.deployed();
-    await licenseContract.takeOverManagementControl(accounts.manager, {from: accounts.lobRoot});
+    const transaction = await licenseContract.takeOverManagementControl(accounts.manager, {from: accounts.lobRoot});
     assert.equal(await licenseContract.managerAddress(), accounts.manager);
+    truffleAssert.eventEmitted(transaction, 'ManagementControlTakeOver', (event) => {
+      return event.managerAddress == accounts.manager;
+    });
   });
 
   it("disallows the issuer to issue licenses", async () => {
@@ -561,6 +632,20 @@ contract('Transfer fee', function(unnamedAccounts) {
     // Remove all tiers
     await licenseContract.setTransferFeeTiers([], [], {from: accounts.lobRoot});
     await lobAssert.transferFeeTiers(licenseContract, []);
+  });
+
+  it('emits the transfer fee tiers change event', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    const transaction = await licenseContract.setTransferFeeTiers([0, 1000], [100, 50], {from: accounts.lobRoot});
+    truffleAssert.eventEmitted(transaction, 'TransferFeeTiersChange', (event) => {
+      // Arrays need to be compared memberwise because the event has arrays of BNs which are only directly comparable to Numbers
+      return event.minimumLicenseValues.length == 2 &&
+        event.minimumLicenseValues[0] == 0 &&
+        event.minimumLicenseValues[1] == 1000 &&
+        event.fees.length == 2 &&
+        event.fees[0] == 100 &&
+        event.fees[1] == 50;
+    })
   });
 
   it('fails if more fees than mimimumLicenseValues are passed', async () => {
@@ -706,10 +791,28 @@ contract('Issuer transfer fee share', function(unnamedAccounts) {
     assert.equal(await licenseContract.issuerTransferFeeShare(), 500);
   });
 
-  it('cannot be set by anyone but the LOB root', async () => {
+  it('emits the IssuerTransferFeeShareChanged event when changed', async () => {
     const licenseContract = await LicenseContract.deployed();
 
-    await truffleAssert.fails(licenseContract.setIssuerTransferFeeShare(500, {from: accounts.firstOwner}));
+    const transaction = await licenseContract.setIssuerTransferFeeShare(500, {from: accounts.lobRoot});
+
+    truffleAssert.eventEmitted(transaction, 'IssuerTransferFeeShareChanged', (event) => {
+      return event.newShare == 500;
+    })
+  });
+
+  it('can be set to 100%', async () => {
+    const licenseContract = await LicenseContract.deployed();
+
+    await licenseContract.setIssuerTransferFeeShare(10000, {from: accounts.lobRoot});
+
+    assert.equal(await licenseContract.issuerTransferFeeShare(), 10000);
+  });
+
+  it('cannot be set to more than 100%', async () => {
+    const licenseContract = await LicenseContract.deployed();
+
+    await truffleAssert.fails(licenseContract.setIssuerTransferFeeShare(11000, {from: accounts.lobRoot}));
   });
 
   it('are divided between issuer and LOB', async () => {

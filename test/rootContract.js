@@ -38,8 +38,16 @@ contract("Root contract registration fee", function(unnamedAccounts) {
 
   it("can be changed by the owner", async () => {
     const rootContract = await RootContract.deployed();
-    await rootContract.setRegistrationFee(900, {from: accounts.lobRootOwner});
-    assert.equal(await rootContract.registrationFee(), 900);
+    await rootContract.setRegistrationFee(400, {from: accounts.lobRootOwner});
+    assert.equal(await rootContract.registrationFee(), 400);
+  });
+
+  it("emits the RegistrationFeeChanged event when changed", async () => {
+    const rootContract = await RootContract.deployed();
+    const transaction = await rootContract.setRegistrationFee(900, {from: accounts.lobRootOwner});
+    truffleAssert.eventEmitted(transaction, 'RegistrationFeeChanged', (event) => {
+      return event.newRegistrationFee == 900;
+    });
   });
 
   it("does not allow creating a license contract if not enough fee is passed", async () => {
@@ -73,8 +81,16 @@ contract("Root contract default issuance fee factor", function(unnamedAccounts) 
 
   it("can be changed by the owner", async () => {
     const rootContract = await RootContract.deployed();
-    await rootContract.setDefaultIssuanceFeeFactor(5000, {from: accounts.lobRootOwner});
-    assert.equal(await rootContract.defaultIssuanceFeeFactor(), 5000);
+    await rootContract.setDefaultIssuanceFeeFactor(4000, {from: accounts.lobRootOwner});
+    assert.equal(await rootContract.defaultIssuanceFeeFactor(), 4000);
+  });
+
+  it("emits the DefaultIssuanceFeeFactorChanged event when changed", async () => {
+    const rootContract = await RootContract.deployed();
+    const transaction = await rootContract.setDefaultIssuanceFeeFactor(5000, {from: accounts.lobRootOwner});
+    truffleAssert.eventEmitted(transaction, 'DefaultIssuanceFeeFactorChanged', (event) => {
+      return event.newDefaultFeeFactor == 5000;
+    });
   });
 
   it('should be inherited by newly created license contract', async () => {
@@ -97,6 +113,14 @@ contract("Root contract owner", function(unnamedAccounts) {
     const rootContract = await RootContract.deployed();
     await rootContract.setOwner(accounts.firstOwner, {from: accounts.lobRootOwner});
     assert.equal(await rootContract.owner(), accounts.firstOwner);
+  });
+
+  it("emits the OwnerChanged event when changed", async () => {
+    const rootContract = await RootContract.deployed();
+    const transaction = await rootContract.setOwner(accounts.secondOwner, {from: accounts.firstOwner});
+    truffleAssert.eventEmitted(transaction, 'OwnerChanged', (event) => {
+      return event.newOwner == accounts.secondOwner;
+    })
   });
 });
 
@@ -182,12 +206,22 @@ contract("Creating a new license contract", function(unnamedAccounts) {
 
   it("does not consume too much gas", async () => {
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    lobAssert.transactionCost(transaction, 3335756, "createLicenseContract");
+    lobAssert.transactionCost(transaction, 3387288, "createLicenseContract");
   });
 
   it("saves the license contract address in the root contract", async () => {
     assert.equal(await rootContract.licenseContractCount(), 2);
     assert.equal(await rootContract.licenseContracts(0), licenseContract.address);
+  });
+
+  it("emits the LicenseContractCreation event", async () => {
+    const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+
+    const licenseContractAddress = await rootContract.licenseContracts(2);
+
+    truffleAssert.eventEmitted(transaction, 'LicenseContractCreation', (event) => {
+      return event.licenseContractAddress == licenseContractAddress;
+    });
   });
 
   it("has the LOB root set to the root contract", async () => {
@@ -276,6 +310,22 @@ contract("Transfer fees tiers", function(unnamedAccounts) {
     const rootContract = await RootContract.deployed();
     await truffleAssert.fails(rootContract.setDefaultTransferFeeTiers([0, 1000], [100, 50], {from: accounts.firstOwner}));
   });
+
+  it('emit the DefaultTransferFeeTiersChanged event when defaults are changed', async () => {
+    const rootContract = await RootContract.deployed();
+
+    const transaction = await rootContract.setDefaultTransferFeeTiers([0, 700], [120, 80], {from: accounts.lobRootOwner});
+    
+    truffleAssert.eventEmitted(transaction, 'DefaultTransferFeeTiersChanged', (event) => {
+      // Arrays need to be compared memberwise because the event has arrays of BNs which are only directly comparable to Numbers
+      return event.minimumLicenseValues.length == 2 &&
+        event.minimumLicenseValues[0] == 0 &&
+        event.minimumLicenseValues[1] == 700 &&
+        event.fees.length == 2 &&
+        event.fees[0] == 120 &&
+        event.fees[1] == 80;
+    })
+  });
 });
 
 contract('Default transfer fee share', function(unnamedAccounts) {
@@ -310,4 +360,14 @@ contract('Default transfer fee share', function(unnamedAccounts) {
     const licenseContract = await getLicenseContract(transaction);
     assert.equal(await licenseContract.issuerTransferFeeShare(), 5000);
   });
+
+  it("emits the DefaultTransferFeeShareChanged event when changed", async () => {
+    const rootContract = await RootContract.deployed();
+
+    const transaction = await rootContract.setDefaultIssuerTransferFeeShare(300, {from: accounts.lobRootOwner});
+
+    truffleAssert.eventEmitted(transaction, 'DefaultTransferFeeShareChanged', (event) => {
+      return event.newShare == 300;
+    })
+  })
 });
