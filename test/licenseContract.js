@@ -117,18 +117,22 @@ contract("License issuing", function(unnamedAccounts) {
 
   it("cannot be performed if the issuance fee is not transmitted", async () => {
     const licenseContract = await LicenseContract.deployed();
-    licenseContract.setTransferFeeTiers([0, 100000], [100, 50], {from: accounts.lobRoot}); // 0€: 1%, 1000€: 0.5%
-    licenseContract.setIssuanceFeeFactor(5000, {from: accounts.lobRoot}); // 50%
+    await licenseContract.setTransferFeeTiers([0, 100000], [100, 50], {from: accounts.lobRoot}); // 0€: 1%, 1000€: 0.5%
+    await licenseContract.setIssuanceFeeFactor(5000, {from: accounts.lobRoot}); // 50%
 
-    // Issuance fee: 70 * 10€ * 1% * 50% = 3.50€ = 350ct = 350000 Wei
-    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 250000}));
+    assert.equal(await licenseContract.getTransferFee(100 * 1000), 500);
+
+    // Issuance fee for first tier: 70 * 10€ * 1% * 50% = 3.50€ = 350ct = 350000 Wei
+    // Issuance fee for second tier: 1000€ * 50% * 50% = 5€ = 500ct = 250000 Wei
+    // Choose fee from second tier
+    await truffleAssert.fails(licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 240000}));
   });
 
   it("works if called by the issuer and exactly the right issuance fee is transmitted", async () => {
     const licenseContract = await LicenseContract.deployed();
     // Fee calculation see above
     const transaction = await licenseContract.issueLicense("Desc", "ID", /*originalValue=*/1000, accounts.firstOwner, 70, "Remark", 1509552789, {from:accounts.issuer, value: 350000});
-    lobAssert.transactionCost(transaction, 229668, "license issuing");
+    lobAssert.transactionCost(transaction, 230237, "license issuing");
     await lobAssert.relevantIssuances(licenseContract, accounts.firstOwner, [0]);
   });
 
@@ -238,7 +242,7 @@ contract("License transfer", function(unnamedAccounts) {
   it("can transfer less licenses than currently owned by the sender", async () => {
     const licenseContract = await LicenseContract.deployed();
     const transaction = await licenseContract.transfer(0, accounts.secondOwner, 20, {from:accounts.firstOwner});
-    lobAssert.transactionCost(transaction, 82556, "transfer");
+    lobAssert.transactionCost(transaction, 82477, "transfer");
     await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 50);
     await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 20);
     await lobAssert.relevantIssuances(licenseContract, accounts.secondOwner, [0]);
@@ -682,11 +686,16 @@ contract('Transfer fee', function(unnamedAccounts) {
     assert.equal(await licenseContract.getTransferFee(100), 1);
     assert.equal(await licenseContract.getTransferFee(199), 1);
     assert.equal(await licenseContract.getTransferFee(200), 2);
-    assert.equal(await licenseContract.getTransferFee(900), 9);
     assert.equal(await licenseContract.getTransferFee(1000), 5);
     assert.equal(await licenseContract.getTransferFee(1200), 6);
     assert.equal(await licenseContract.getTransferFee(2000), 8);
     assert.equal(await licenseContract.getTransferFee(200000), 800);
+  });
+
+  it('are chosen from the next transfer fee tier if that reduces the transfer fee', async () => {
+    const licenseContract = await LicenseContract.deployed();
+
+    assert.equal(await licenseContract.getTransferFee(900), 5);
   });
 
   it('is required to transfer licenses', async () => {
@@ -710,7 +719,7 @@ contract('Transfer fee', function(unnamedAccounts) {
     await truffleAssert.fails(licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 40000}));
     await truffleAssert.passes(licenseContract.transfer(0, accounts.secondOwner, 10, {from: accounts.firstOwner, value: 50000}));
     const transaction = await licenseContract.transfer(0, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 50000})
-    lobAssert.transactionCost(transaction, 72485, "license transfer with fee");
+    lobAssert.transactionCost(transaction, 73105, "license transfer with fee");
 
     await lobAssert.balance(licenseContract, 0, accounts.firstOwner, 20 - 1 - 2 - 10 - 1);
     await lobAssert.balance(licenseContract, 0, accounts.secondOwner, 1 + 2 + 10 + 1);

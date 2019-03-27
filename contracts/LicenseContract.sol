@@ -725,19 +725,27 @@ contract LicenseContract {
      * @return The transfer fee in Euro-Cents
      */
     function getTransferFee(uint128 licenseValue) public view returns (uint136) {
-        uint16 fee = 0;
+        // licenseValue (uint128) * fee (uint16) fits into uint144
+        // 10000 > 2^8, hence the overall result fits into a uint136
+        uint136 fee = 0;
         for (uint i = 0; i < transferFeeTiers.length; i++) {
             LicenseContractLib.TransferFeeTier storage tier = transferFeeTiers[i];
             if (tier.minimumLicenseValue > licenseValue) {
                 // We have reached a tier that is beyond the current limit. 
+                // Check if the fee of transferring its minimum license value is 
+                // lower than the current fee. If so, choose that fee to avoid
+                // a jump that decreases the fee for a bigger license value.
+                
+                uint136 nextFee = uint136((uint144(tier.minimumLicenseValue) * tier.fee) / 10000);
+                if (nextFee < fee) {
+                    fee = nextFee;
+                }
                 break;
             } else {
-                fee = tier.fee;
+                fee = uint136((uint144(licenseValue) * tier.fee) / 10000);
             }
         }
-        // licenseValue (uint128) * fee (uint16) fits into uint144
-        // 10000 > 2^8, hence the overall result fits into a uint136
-        return uint136((uint144(licenseValue) * fee) / 10000);
+        return fee;
     }
 
     /**
