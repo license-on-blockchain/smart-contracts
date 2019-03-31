@@ -21,6 +21,11 @@ contract("Root contract constructor", function(unnamedAccounts) {
     const rootContract = await RootContract.deployed();
     assert.equal(await rootContract.owner(), accounts.lobRootOwner);
   });
+
+  it('has the correct version', async () => {
+    const rootContract = await RootContract.deployed();
+    assert.equal(await rootContract.version(), 2);
+  });
 });
 
 contract("Root contract registration fee", function(unnamedAccounts) {
