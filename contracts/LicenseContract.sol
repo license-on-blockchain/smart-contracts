@@ -16,7 +16,7 @@ contract EtherPriceOracleInterface {
      * @param euro Euro-Cents to convert to Ether
      * @return The number of Ethers corresponding to `euro` in Wei
      */
-    function eurToEth(uint euro) public payable returns (uint);
+    function eurToEth(uint euro) public view returns (uint);
 }
 
 contract LicenseContract {
@@ -352,6 +352,23 @@ contract LicenseContract {
 
     // License creation
 
+
+    /**
+     * Get the issuance fee that is required to be paid to issue `numLicenses`,
+     * each worth `originalValue`.
+     *
+     * @param originalValue The value of each license in Euro-Cents
+     * @param numLicenses The number of licenses that are being issueud
+     * @return The issuance fee that is required to be paid in Euro-Cents
+     */
+    function getIssuanceFee(uint64 originalValue, uint64 numLicenses) public view returns (uint160) {
+        // Original value (uint64) * numLicenses (uint64) fits into uint128
+        uint128 licenseValue = uint128(originalValue) * numLicenses;
+        // getTransferFee (uint136) * issuanceFeeFactor (uint32) fits into 
+        // uint168. Devision by 10000 >= 2^8 make the result fit into uint160
+        return uint160((uint168(getTransferFee(licenseValue)) * issuanceFeeFactor) / 10000);
+    }
+
     /**
     * Issue new LOB licenses. The following conditions must be satisfied for 
     * this function to succeed:
@@ -409,25 +426,15 @@ contract LicenseContract {
      *
      * @param originalValue The value of each license in Euro-Cents
      * @param numLicenses The number of licenses that are being issueud
-     * @return 1. The fee that is required to be paid for the issuance 
-     *            (max from the LOB fees and the oracle fee)
-     *         2. The fee that has been paid to the Ether price oracle
      */
     function handleIssuanceFee(uint64 originalValue, uint64 numLicenses) private {
-        // Original value (uint64) * numLicenses (uint64) fits into uint128
-        uint128 licenseValue = uint128(originalValue) * numLicenses;
-        // getTransferFee (uint136) * issuanceFeeFactor (uint32) fits into 
-        // uint168. Devision by 10000 >= 2^8 make the result fit into uint160
-        uint160 euroFee = uint160((uint168(getTransferFee(licenseValue)) * issuanceFeeFactor) / 10000);
+        uint160 euroFee = getIssuanceFee(originalValue, numLicenses);
         uint etherFee = 0;
-        uint oracleFee = 0;
         if (euroFee != 0) {
-            oracleFee = etherPriceOracle.fee();
-            require(msg.value >= oracleFee);
-            etherFee = etherPriceOracle.eurToEth.value(oracleFee)(euroFee);
+            etherFee = etherPriceOracle.eurToEth(euroFee);
         }
         require(msg.value >= etherFee);
-        lobRoot.transfer(msg.value - oracleFee);
+        lobRoot.transfer(msg.value);
     }
 
     // Caches
@@ -584,28 +591,14 @@ contract LicenseContract {
         uint128 licenseValue = uint128(issuances[issuanceNumber].originalValue) * amount;
         uint136 euroFee = getTransferFee(licenseValue);
         uint etherFee = 0;
-        uint oracleFee = 0;
         if (euroFee != 0) {
-            // A fee is required to be paid for the transfer. Go and ask the 
-            // oracle to convert the Euro fee into Ether. 
-            // Since the oracle may take a fee as well, we don't want to ask it
-            // in case there is nothing to convert.
-
-            oracleFee = etherPriceOracle.fee();
-            
-            // The transmitted fee must be at least big enough to cover the 
-            // oracle's fee
-            require(msg.value >= oracleFee);
-            
-            etherFee = etherPriceOracle.eurToEth.value(oracleFee)(euroFee);
+            etherFee = etherPriceOracle.eurToEth(euroFee);
         }
         require(msg.value >= etherFee);
-        // No undeflow because msg.value >= oracleFee
-        uint remainingFee = msg.value - oracleFee;
         // There are not enough ether to make the multiplication overflow
-        uint issuerShare = remainingFee * issuerTransferFeeShare / 10000;
+        uint issuerShare = msg.value * issuerTransferFeeShare / 10000;
         issuer.transfer(issuerShare);
-        lobRoot.transfer(remainingFee - issuerShare);
+        lobRoot.transfer(msg.value - issuerShare);
 
         relevantIssuances[to].push(issuanceNumber);
         issuances.transferFromMessageSender(issuanceNumber, to, amount);
