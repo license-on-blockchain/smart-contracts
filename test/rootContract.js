@@ -42,10 +42,10 @@ contract("Root contract registration fee", function(unnamedAccounts) {
     assert.equal(await rootContract.registrationFee(), 400);
   });
 
-  it("emits the RegistrationFeeChanged event when changed", async () => {
+  it("emits the RegistrationFeeChange event when changed", async () => {
     const rootContract = await RootContract.deployed();
     const transaction = await rootContract.setRegistrationFee(900, {from: accounts.lobRootOwner});
-    truffleAssert.eventEmitted(transaction, 'RegistrationFeeChanged', (event) => {
+    truffleAssert.eventEmitted(transaction, 'RegistrationFeeChange', (event) => {
       return event.newRegistrationFee == 900;
     });
   });
@@ -85,10 +85,10 @@ contract("Root contract default issuance fee factor", function(unnamedAccounts) 
     assert.equal(await rootContract.defaultIssuanceFeeFactor(), 4000);
   });
 
-  it("emits the DefaultIssuanceFeeFactorChanged event when changed", async () => {
+  it("emits the DefaultIssuanceFeeFactorChange event when changed", async () => {
     const rootContract = await RootContract.deployed();
     const transaction = await rootContract.setDefaultIssuanceFeeFactor(5000, {from: accounts.lobRootOwner});
-    truffleAssert.eventEmitted(transaction, 'DefaultIssuanceFeeFactorChanged', (event) => {
+    truffleAssert.eventEmitted(transaction, 'DefaultIssuanceFeeFactorChange', (event) => {
       return event.newDefaultFeeFactor == 5000;
     });
   });
@@ -115,10 +115,10 @@ contract("Root contract owner", function(unnamedAccounts) {
     assert.equal(await rootContract.owner(), accounts.firstOwner);
   });
 
-  it("emits the OwnerChanged event when changed", async () => {
+  it("emits the OwnerChange event when changed", async () => {
     const rootContract = await RootContract.deployed();
     const transaction = await rootContract.setOwner(accounts.secondOwner, {from: accounts.firstOwner});
-    truffleAssert.eventEmitted(transaction, 'OwnerChanged', (event) => {
+    truffleAssert.eventEmitted(transaction, 'OwnerChange', (event) => {
       return event.newOwner == accounts.secondOwner;
     })
   });
@@ -311,12 +311,12 @@ contract("Transfer fees tiers", function(unnamedAccounts) {
     await truffleAssert.fails(rootContract.setDefaultTransferFeeTiers([0, 1000], [100, 50], {from: accounts.firstOwner}));
   });
 
-  it('emit the DefaultTransferFeeTiersChanged event when defaults are changed', async () => {
+  it('emit the DefaultTransferFeeTiersChange event when defaults are changed', async () => {
     const rootContract = await RootContract.deployed();
 
     const transaction = await rootContract.setDefaultTransferFeeTiers([0, 700], [120, 80], {from: accounts.lobRootOwner});
     
-    truffleAssert.eventEmitted(transaction, 'DefaultTransferFeeTiersChanged', (event) => {
+    truffleAssert.eventEmitted(transaction, 'DefaultTransferFeeTiersChange', (event) => {
       // Arrays need to be compared memberwise because the event has arrays of BNs which are only directly comparable to Numbers
       return event.minimumLicenseValues.length == 2 &&
         event.minimumLicenseValues[0] == 0 &&
@@ -361,12 +361,12 @@ contract('Default transfer fee share', function(unnamedAccounts) {
     assert.equal(await licenseContract.issuerTransferFeeShare(), 5000);
   });
 
-  it("emits the DefaultTransferFeeShareChanged event when changed", async () => {
+  it("emits the DefaultTransferFeeShareChange event when changed", async () => {
     const rootContract = await RootContract.deployed();
 
     const transaction = await rootContract.setDefaultIssuerTransferFeeShare(300, {from: accounts.lobRootOwner});
 
-    truffleAssert.eventEmitted(transaction, 'DefaultTransferFeeShareChanged', (event) => {
+    truffleAssert.eventEmitted(transaction, 'DefaultTransferFeeShareChange', (event) => {
       return event.newShare == 300;
     })
   })

@@ -238,7 +238,7 @@ contract LicenseContract {
      * @param newShare The percentage of the transfer fees that shall be 
      *                 credited to the respective license's issuer in 0.01%
      */
-    event IssuerTransferFeeShareChanged(uint16 newShare);
+    event IssuerTransferFeeShareChange(uint16 newShare);
 
     /**
      * Fired when the issuance fee factor changes. 
@@ -781,7 +781,7 @@ contract LicenseContract {
     function setIssuerTransferFeeShare(uint16 share) external onlyLOBRoot {
         // Don't allow the share to be > 100%
         require(share <= 10000);
-        emit IssuerTransferFeeShareChanged(share);
+        emit IssuerTransferFeeShareChange(share);
         issuerTransferFeeShare = share;
     }
 

@@ -800,12 +800,12 @@ contract('Issuer transfer fee share', function(unnamedAccounts) {
     assert.equal(await licenseContract.issuerTransferFeeShare(), 500);
   });
 
-  it('emits the IssuerTransferFeeShareChanged event when changed', async () => {
+  it('emits the IssuerTransferFeeShareChange event when changed', async () => {
     const licenseContract = await LicenseContract.deployed();
 
     const transaction = await licenseContract.setIssuerTransferFeeShare(500, {from: accounts.lobRoot});
 
-    truffleAssert.eventEmitted(transaction, 'IssuerTransferFeeShareChanged', (event) => {
+    truffleAssert.eventEmitted(transaction, 'IssuerTransferFeeShareChange', (event) => {
       return event.newShare == 500;
     })
   });

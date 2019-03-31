@@ -86,7 +86,7 @@ contract RootContract {
      *
      * @param newOwner The address that now owns the root contract.
      */
-    event OwnerChanged(address newOwner);
+    event OwnerChange(address newOwner);
 
     /**
      * Fired when a new license contract is created.
@@ -103,7 +103,7 @@ contract RootContract {
      * @param newRegistrationFee The new fee in Wei that is required to be paid
      *                           to generate a new license contract.
      */
-    event RegistrationFeeChanged(uint128 newRegistrationFee);
+    event RegistrationFeeChange(uint128 newRegistrationFee);
 
     /**
      * Emitted when the default issuance fee factor changes.
@@ -112,7 +112,7 @@ contract RootContract {
      *                            compute the issuance fee from the transfer fee 
      *                            in 0.01%
      */
-    event DefaultIssuanceFeeFactorChanged(uint32 newDefaultFeeFactor);
+    event DefaultIssuanceFeeFactorChange(uint32 newDefaultFeeFactor);
 
     /**
      * Emitted when the default transfer fee tiers are changed.
@@ -120,7 +120,7 @@ contract RootContract {
      * See documentation of `LicenseContract.setTransferFeeTiers` for 
      * documentation of the parameters.
      */
-    event DefaultTransferFeeTiersChanged(uint64[] minimumLicenseValues, uint16[] fees);
+    event DefaultTransferFeeTiersChange(uint64[] minimumLicenseValues, uint16[] fees);
 
     /**
      * Emitted when the default transfer fee share of the issuer changes.
@@ -128,7 +128,7 @@ contract RootContract {
      * @param newShare The new percentage of the transfer fees the issuer should 
      *                 receive on new license contracts.
      */
-    event DefaultTransferFeeShareChanged(uint16 newShare);
+    event DefaultTransferFeeShareChange(uint16 newShare);
 
     /**
      * Fired when the root contract gets disabled.
@@ -251,7 +251,7 @@ contract RootContract {
      */
     function setDefaultIssuanceFeeFactor(uint32 newDefaultFeeFactor) external onlyOwner {
         defaultIssuanceFeeFactor = newDefaultFeeFactor;
-        emit DefaultIssuanceFeeFactorChanged(newDefaultFeeFactor);
+        emit DefaultIssuanceFeeFactorChange(newDefaultFeeFactor);
     }
 
     /**
@@ -265,7 +265,7 @@ contract RootContract {
      */ 
     function setDefaultIssuerTransferFeeShare(uint16 newShare) external onlyOwner {
         defaultIssuerTransferFeeShare = newShare;
-        emit DefaultTransferFeeShareChanged(newShare);
+        emit DefaultTransferFeeShareChange(newShare);
     }
 
     /**
@@ -279,7 +279,7 @@ contract RootContract {
      */
     function setRegistrationFee(uint128 newRegistrationFee) external onlyOwner {
         registrationFee = newRegistrationFee;
-        emit RegistrationFeeChanged(newRegistrationFee);
+        emit RegistrationFeeChange(newRegistrationFee);
     }
 
     // Transfer fees
@@ -291,7 +291,7 @@ contract RootContract {
      */
     function setDefaultTransferFeeTiers(uint64[] calldata minimumLicenseValues, uint16[] calldata fees) external onlyOwner {
         defaultTransferFeeTiers.set(minimumLicenseValues, fees);
-        emit DefaultTransferFeeTiersChanged(minimumLicenseValues, fees);
+        emit DefaultTransferFeeTiersChange(minimumLicenseValues, fees);
     }
 
     /**
@@ -338,7 +338,7 @@ contract RootContract {
      */
     function setOwner(address newOwner) external onlyOwner {
         owner = newOwner;
-        emit OwnerChanged(newOwner);
+        emit OwnerChange(newOwner);
     }
 
     /**
