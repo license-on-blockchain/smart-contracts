@@ -148,7 +148,7 @@ contract LicenseContract {
      * `TransferFeeTier.minimumLicenseValue`. If empty, a transfer fee of 0% is 
      * assumed.
      */
-    LicenseContractLib.TransferFeeTier[] transferFeeTiers;
+    LicenseContractLib.TransferFeeTier[] private transferFeeTiers;
 
     /**
      * The issuances created by this license contract. The issuance with 

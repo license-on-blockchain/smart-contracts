@@ -65,7 +65,7 @@ contract RootContract {
      * The defaul transfer fee tiers to be set on newly created license 
      * contracts.
      */
-    LicenseContractLib.TransferFeeTier[] defaultTransferFeeTiers;
+    LicenseContractLib.TransferFeeTier[] private defaultTransferFeeTiers;
 
     /** 
      * The addresses of all license contracts created by this root contract.
