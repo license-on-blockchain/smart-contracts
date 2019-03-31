@@ -140,7 +140,7 @@ contract LicenseContract {
      * The oracle that is used to query the current conversion rate of Ether to 
      * Euros.
      */
-    EtherPriceOracleInterface private etherPriceOracle;
+    EtherPriceOracleInterface public etherPriceOracle;
 
     /**
      * The transfer fees that are required to be paid depending on the 

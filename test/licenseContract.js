@@ -64,6 +64,12 @@ contract("LicenseContract constructor", function(unnamedAccounts) {
     assert.equal(await licenseContract.managerAddress(), '0x0000000000000000000000000000000000000000');
   });
 
+  it("should set the price oracle address", async () => {
+    const etherPriceOracle = (await EtherPriceOracleStub.deployed()).address;
+    const licenseContract = await LicenseContract.deployed();
+    assert.equal(await licenseContract.etherPriceOracle(), etherPriceOracle);
+  })
+
   it("issuance fee factor is set manually", async () => {
     const licenseContract = await LicenseContract.deployed();
     assert.equal(await licenseContract.issuanceFeeFactor(), 5000);
