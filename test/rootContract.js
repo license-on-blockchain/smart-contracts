@@ -211,7 +211,7 @@ contract("Creating a new license contract", function(unnamedAccounts) {
 
   it("does not consume too much gas", async () => {
     const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
-    lobAssert.transactionCost(transaction, 3392518, "createLicenseContract");
+    lobAssert.transactionCost(transaction, 3312718, "createLicenseContract");
   });
 
   it("saves the license contract address in the root contract", async () => {

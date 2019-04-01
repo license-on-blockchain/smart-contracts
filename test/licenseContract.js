@@ -126,7 +126,7 @@ contract("License issuing", function(unnamedAccounts) {
     await licenseContract.setTransferFeeTiers([0, 100000], [100, 50], {from: accounts.lobRoot}); // 0€: 1%, 1000€: 0.5%
     await licenseContract.setIssuanceFeeFactor(5000, {from: accounts.lobRoot}); // 50%
 
-    assert.equal(await licenseContract.getTransferFee(100 * 1000), 500);
+    assert.equal(await licenseContract.getTransferFee(100 * 1000), 500 * 1000);
 
     // Issuance fee for first tier: 70 * 10€ * 1% * 50% = 3.50€ = 350ct = 350000 Wei
     // Issuance fee for second tier: 1000€ * 50% * 50% = 5€ = 500ct = 250000 Wei
@@ -675,20 +675,20 @@ contract('Transfer fee', function(unnamedAccounts) {
     const licenseContract = await LicenseContract.deployed();
     await licenseContract.setTransferFeeTiers([0, 1000, 2000], [100, 50, 40], {from: accounts.lobRoot});
 
-    assert.equal(await licenseContract.getTransferFee(0), 0);
-    assert.equal(await licenseContract.getTransferFee(100), 1);
-    assert.equal(await licenseContract.getTransferFee(199), 1);
-    assert.equal(await licenseContract.getTransferFee(200), 2);
-    assert.equal(await licenseContract.getTransferFee(1000), 5);
-    assert.equal(await licenseContract.getTransferFee(1200), 6);
-    assert.equal(await licenseContract.getTransferFee(2000), 8);
-    assert.equal(await licenseContract.getTransferFee(200000), 800);
+    assert.equal(await licenseContract.getTransferFee(0), 0 * 1000);
+    assert.equal(await licenseContract.getTransferFee(100), 1 * 1000);
+    assert.equal(await licenseContract.getTransferFee(199), 1 * 1000);
+    assert.equal(await licenseContract.getTransferFee(200), 2 * 1000);
+    assert.equal(await licenseContract.getTransferFee(1000), 5 * 1000);
+    assert.equal(await licenseContract.getTransferFee(1200), 6 * 1000);
+    assert.equal(await licenseContract.getTransferFee(2000), 8 * 1000);
+    assert.equal(await licenseContract.getTransferFee(200000), 800 * 1000);
   });
 
   it('are chosen from the next transfer fee tier if that reduces the transfer fee', async () => {
     const licenseContract = await LicenseContract.deployed();
 
-    assert.equal(await licenseContract.getTransferFee(900), 5);
+    assert.equal(await licenseContract.getTransferFee(900), 5 * 1000);
   });
 
   it('is required to transfer licenses', async () => {

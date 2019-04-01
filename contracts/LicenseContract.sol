@@ -359,14 +359,13 @@ contract LicenseContract {
      *
      * @param originalValue The value of each license in Euro-Cents
      * @param numLicenses The number of licenses that are being issueud
-     * @return The issuance fee that is required to be paid in Euro-Cents
+     * @return The issuance fee that is required to be paid in Wei
      */
-    function getIssuanceFee(uint64 originalValue, uint64 numLicenses) public view returns (uint160) {
+    function getIssuanceFee(uint64 originalValue, uint64 numLicenses) public view returns (uint) {
         // Original value (uint64) * numLicenses (uint64) fits into uint128
         uint128 licenseValue = uint128(originalValue) * numLicenses;
-        // getTransferFee (uint136) * issuanceFeeFactor (uint32) fits into 
-        // uint168. Devision by 10000 >= 2^8 make the result fit into uint160
-        return uint160((uint168(getTransferFee(licenseValue)) * issuanceFeeFactor) / 10000);
+        // There aren't enough Ether to make getTransferFee * issuanceFeeFactor overflow
+        return getTransferFee(licenseValue) * issuanceFeeFactor / 10000;
     }
 
     /**
@@ -428,12 +427,8 @@ contract LicenseContract {
      * @param numLicenses The number of licenses that are being issueud
      */
     function handleIssuanceFee(uint64 originalValue, uint64 numLicenses) private {
-        uint160 euroFee = getIssuanceFee(originalValue, numLicenses);
-        uint etherFee = 0;
-        if (euroFee != 0) {
-            etherFee = etherPriceOracle.eurToEth(euroFee);
-        }
-        require(msg.value >= etherFee);
+        uint issuanceFee = getIssuanceFee(originalValue, numLicenses);
+        require(msg.value >= issuanceFee);
         lobRoot.transfer(msg.value);
     }
 
@@ -589,12 +584,7 @@ contract LicenseContract {
     function transfer(uint256 issuanceNumber, address to, uint64 amount) external payable {
         // Original value (uint64) * amount (uint64) fits into uint128
         uint128 licenseValue = uint128(issuances[issuanceNumber].originalValue) * amount;
-        uint136 euroFee = getTransferFee(licenseValue);
-        uint etherFee = 0;
-        if (euroFee != 0) {
-            etherFee = etherPriceOracle.eurToEth(euroFee);
-        }
-        require(msg.value >= etherFee);
+        require(msg.value >= getTransferFee(licenseValue));
         // There are not enough ether to make the multiplication overflow
         uint issuerShare = msg.value * issuerTransferFeeShare / 10000;
         issuer.transfer(issuerShare);
@@ -710,17 +700,17 @@ contract LicenseContract {
     }
 
     /**
-     * Return the fee (in Euro-Cents) that is required to be paid when 
-     * transferring licenses with combined value `licenseValue` in Euro-Cents.
+     * Return the fee (in Wei) that is required to be paid when transferring 
+     * licenses with combined value `licenseValue` in Euro-Cents.
      *
      * @param licenseValue The combined value of the licenses to be transferred
      *                     in Euro-Cents
-     * @return The transfer fee in Euro-Cents
+     * @return The transfer fee in Wei
      */
-    function getTransferFee(uint128 licenseValue) public view returns (uint136) {
+    function getTransferFee(uint128 licenseValue) public view returns (uint) {
         // licenseValue (uint128) * fee (uint16) fits into uint144
         // 10000 > 2^8, hence the overall result fits into a uint136
-        uint136 fee = 0;
+        uint136 euroFee = 0;
         for (uint i = 0; i < transferFeeTiers.length; i++) {
             LicenseContractLib.TransferFeeTier storage tier = transferFeeTiers[i];
             if (tier.minimumLicenseValue > licenseValue) {
@@ -730,15 +720,19 @@ contract LicenseContract {
                 // a jump that decreases the fee for a bigger license value.
                 
                 uint136 nextFee = uint136((uint144(tier.minimumLicenseValue) * tier.fee) / 10000);
-                if (nextFee < fee) {
-                    fee = nextFee;
+                if (nextFee < euroFee) {
+                    euroFee = nextFee;
                 }
                 break;
             } else {
-                fee = uint136((uint144(licenseValue) * tier.fee) / 10000);
+                euroFee = uint136((uint144(licenseValue) * tier.fee) / 10000);
             }
         }
-        return fee;
+        if (euroFee != 0) {
+            return etherPriceOracle.eurToEth(euroFee);
+        } else {
+            return 0;
+        }
     }
 
     /**
