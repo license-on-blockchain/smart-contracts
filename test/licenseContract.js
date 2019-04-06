@@ -61,7 +61,7 @@ contract("LicenseContract constructor", function(unnamedAccounts) {
 
   it("should set the manager address to 0x0", async () => {
     const licenseContract = await LicenseContract.deployed();
-    assert.equal(await licenseContract.managerAddress(), '0x0000000000000000000000000000000000000000');
+    assert.equal(await licenseContract.managerAddress(), accounts.zero);
   });
 
   it("should set the price oracle address", async () => {
@@ -741,19 +741,43 @@ contract('Transfer fee', function(unnamedAccounts) {
     await licenseContract.setTransferFeeTiers([0], [2], {from: accounts.lobRoot});
 
     const twoToThe63 = (new BigNumber(2)).exponentiatedBy(63);
-    await licenseContract.issueLicense("Desc", "Code", /*originalValue=*/twoToThe63.toFixed(), accounts.firstOwner, 20, "Remark", 1509552789, {from: accounts.issuer, value: 7000});
-
-    // Issuance number: 3
+    const transaction = await licenseContract.issueLicense("Desc", "Code", /*originalValue=*/twoToThe63.toFixed(), accounts.firstOwner, 20, "Remark", 1509552789, {from: accounts.issuer, value: 7000});
+    truffleAssert.eventEmitted(transaction, 'Issuing', (event) => {
+      return event.issuanceNumber.toNumber() === 2;
+    });
 
     // Required transfer fee: 2^63€ * 0.02% ~= 1.8 * 10^15 € = a lot of Wei > 10000 Wei
-    await truffleAssert.fails(licenseContract.transfer(3, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 10000}));
+    await truffleAssert.fails(licenseContract.transfer(2, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 10000}));
   });
 
   it('is computed correctly if the license value multiplied by the amount may overflow', async () => {
     // A license value of 2^63 still fits into the field, but multiplying it when transferring multiple licenses may overflow
     const licenseContract = await LicenseContract.deployed();
 
-    await truffleAssert.fails(licenseContract.transfer(3, accounts.secondOwner, 2, {from: accounts.firstOwner, value: 10000}));
+    await truffleAssert.fails(licenseContract.transfer(2, accounts.secondOwner, 2, {from: accounts.firstOwner, value: 10000}));
+  });
+
+  it('is not required to be paid when destroying licenses', async () => {
+    const licenseContract = await LicenseContract.deployed();
+
+    await licenseContract.setTransferFeeTiers([0], [5000], {from: accounts.lobRoot});
+    const transaction = await licenseContract.issueLicense("Desc", "Code", 1000, accounts.firstOwner, 20, "Remark", 1509552789, {from: accounts.issuer, value: 7000});
+    truffleAssert.eventEmitted(transaction, 'Issuing', (event) => {
+      return event.issuanceNumber.toNumber() === 3;
+    });
+
+    await truffleAssert.passes(licenseContract.transfer(3, accounts.zero, 2, {from: accounts.firstOwner, value: 0}));
+  });
+
+  it('is transferred to the LOB root when destorying licenses', async () => {
+    const licenseContract = await LicenseContract.deployed();
+
+    const oldLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));
+
+    await truffleAssert.passes(licenseContract.transfer(3, accounts.zero, 2, {from: accounts.firstOwner, value: 20000}));
+
+    const newLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));
+    assert.equal(newLobRootBalance.minus(oldLobRootBalance).toNumber(), 20000);
   });
 });
 
@@ -838,6 +862,24 @@ contract('Issuer transfer fee share', function(unnamedAccounts) {
     // Transfer fee per license: 10€ * 1% = 0.10€ = 10000 Wei
     
     await licenseContract.transfer(0, accounts.secondOwner, 1, {from: accounts.firstOwner, value: 15000});
+
+    const newIssuerBalance = new BigNumber(await web3.eth.getBalance(accounts.issuer));
+    const newLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));
+
+    assert.equal(newIssuerBalance.minus(oldIssuerBalance).toNumber(), 15000 * 0.8);
+    assert.equal(newLobRootBalance.minus(oldLobRootBalance).toNumber(), 15000 * 0.2);
+  });
+
+  it('is correctly divided when destorying licenses', async () => {
+    const licenseContract = await LicenseContract.deployed();
+    const etherPriceOracle = await EtherPriceOracleStub.deployed();
+    
+    const oldIssuerBalance = new BigNumber(await web3.eth.getBalance(accounts.issuer));
+    const oldLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));
+
+    // Transfer fee per license: 10€ * 1% = 0.10€ = 10000 Wei
+    
+    await licenseContract.transfer(0, accounts.zero, 1, {from: accounts.firstOwner, value: 15000});
 
     const newIssuerBalance = new BigNumber(await web3.eth.getBalance(accounts.issuer));
     const newLobRootBalance = new BigNumber(await web3.eth.getBalance(accounts.lobRoot));

@@ -582,9 +582,13 @@ contract LicenseContract {
      * @param amount The number of licenses that shall be transferred
      */
     function transfer(uint256 issuanceNumber, address to, uint64 amount) external payable {
-        // Original value (uint64) * amount (uint64) fits into uint128
-        uint128 licenseValue = uint128(issuances[issuanceNumber].originalValue) * amount;
-        require(msg.value >= getTransferFee(licenseValue));
+        // Don't require a transfer fee when destroying a license (a.k.a. 
+        // transferring it to 0x0)
+        if (to != address(0)) {
+            // Original value (uint64) * amount (uint64) fits into uint128
+            uint128 licenseValue = uint128(issuances[issuanceNumber].originalValue) * amount;
+            require(msg.value >= getTransferFee(licenseValue));
+        }
         // There are not enough ether to make the multiplication overflow
         uint issuerShare = msg.value * issuerTransferFeeShare / 10000;
         issuer.transfer(issuerShare);

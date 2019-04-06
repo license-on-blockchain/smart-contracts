@@ -9,7 +9,8 @@ const Accounts = {
       secondOwner: unnamedAccounts[5],
       thirdOwner: unnamedAccounts[6],
       fourthOwner: unnamedAccounts[7],
-      manager: unnamedAccounts[8]
+      manager: unnamedAccounts[8],
+      zero: '0x0000000000000000000000000000000000000000'
     }
   }
 }
