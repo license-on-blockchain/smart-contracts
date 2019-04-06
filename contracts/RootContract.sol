@@ -330,6 +330,17 @@ contract RootContract {
     }
 
     /**
+     * Set the share of the transfer fees that are transferred to the issuer of 
+     * the transferred license on a given license contract.
+     *
+     * @param share The percentage of the transfer fees that shall be 
+     *              credited to the respective license's issuer in 0.01%
+     */
+    function setLicenseContractIssuerTransferFeeShare(LicenseContract licenseContract, uint16 share) external onlyOwner {
+        licenseContract.setIssuerTransferFeeShare(share);
+    }
+
+    /**
      * Set the owner of the root contract to a new address.
      * 
      * This can only be invoked by the current owner.

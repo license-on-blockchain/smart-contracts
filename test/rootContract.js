@@ -180,6 +180,29 @@ contract("Setting a license contract's issuance fee factor", function(unnamedAcc
   });
 });
 
+contract("Setting a license contract's issuer transfer fee share", function(unnamedAccounts) {
+  const accounts = Accounts.getNamed(unnamedAccounts);
+
+  let rootContract;
+  let licenseContract;
+
+  before(async () => {
+    rootContract = await RootContract.deployed();
+    const transaction = await rootContract.createLicenseContract("Soft&Cloud", "Liability", 10, "0x5e789a", {from: accounts.issuer});
+    licenseContract = await getLicenseContract(transaction);
+  });
+
+  it("cannot be done by anyone but the root contract owner", async () => {
+    await truffleAssert.fails(rootContract.setLicenseContractIssuerTransferFeeShare(licenseContract.address, 5000, {from: accounts.firstOwner}));
+  });
+
+  it("can be done by the root contract owner", async () => {
+    await rootContract.setLicenseContractIssuerTransferFeeShare(licenseContract.address, 5000, {from: accounts.lobRootOwner});
+    assert.equal(await licenseContract.issuerTransferFeeShare(), 5000);
+  });
+
+})
+
 contract("Root contract disabling", function(unnamedAccounts) {
   const accounts = Accounts.getNamed(unnamedAccounts);
 
